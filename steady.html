@@ -392,6 +392,11 @@ function migrate(s) {
     if (!find("melatonin")) { const i = H.findIndex(x => x.id === "winddown"); const h = { id: "melatonin", name: "Melatonin", detail: "1 or 2 tablets, as you need", cat: "med", time: "evening", variants: ["1 tablet", "2 tablets"] }; i >= 0 ? H.splice(i, 0, h) : H.push(h); }
     s.planV = 6;
   }
+  if (s.planV < 7) {
+    // Methyl B in the morning, after Vitamin D / K2
+    if (!find("methylb")) { const i = H.findIndex(x => x.id === "vitdk2"); const h = { id: "methylb", name: "Methyl B", detail: "", cat: "supp", time: "morning" }; i >= 0 ? H.splice(i + 1, 0, h) : H.push(h); }
+    s.planV = 7;
+  }
   return s.planV !== v0;
 }
 function withDefaults(data) { const def = DEFAULT_SETTINGS(); delete def.planV; return JSON.parse(JSON.stringify(Object.assign(def, data))); }
