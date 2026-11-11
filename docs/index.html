@@ -1296,7 +1296,7 @@ document.getElementById("app").addEventListener("change", e => {
 });
 
 /* ---------- Oura (GitHub Pages version only, via the steady-oura helper) ---------- */
-const OURA_HELPER = ""; // set once the helper is deployed, e.g. https://steady-oura.<name>.workers.dev
+const OURA_HELPER = "https://steady-oura.oura-helper.workers.dev";
 const OURA_LS = "steady.oura";
 let ouraBusy = false, ouraMsg = "";
 function ouraState() { try { return JSON.parse(localStorage.getItem(OURA_LS) || "null"); } catch { return null; } }

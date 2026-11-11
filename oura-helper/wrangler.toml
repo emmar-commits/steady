@@ -5,4 +5,4 @@ compatibility_date = "2025-06-01"
 # OURA_CLIENT_ID is public (it appears in the sign-in link anyway).
 # OURA_CLIENT_SECRET is set separately with: npx wrangler secret put OURA_CLIENT_SECRET
 [vars]
-OURA_CLIENT_ID = ""
+OURA_CLIENT_ID = "6d880c15-9d42-4e7a-a69d-22a8ff17663d"
