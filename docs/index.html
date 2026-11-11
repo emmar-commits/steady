@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FCF5F7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Steady">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Steady Health Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one phone-width column, sticky brand bar on top, fixed tab bar at the bottom; cards only for things you act on. */
+/* Single light look by request: blush ground, berry accent, peach for streaks. */
+:root {
+  --bg: #FCF5F7;
+  --surface: #FFFFFF;
+  --surface-2: #F7EAEF;
+  --ink: #33202C;
+  --muted: #86707D;
+  --line: #F0DEE6;
+  --primary: #A8457A;
+  --primary-ink: #FFFFFF;
+  --primary-soft: #F8E2ED;
+  --sun: #E08A55;
+  --sun-soft: #FDEADF;
+  --rose: #E0709B;
+  --rose-soft: #FCE4EE;
+  --danger: #B93445;
+  --danger-soft: #FAE1E4;
+  --warn: #B47C2A;
+  --ok: #3F8C6C;
+  --chart-2: #8A78CF;
+  --shadow: 0 1px 2px rgba(120,50,85,.05), 0 8px 24px rgba(120,50,85,.07);
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r: 18px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: 1.75rem; line-height: 1.15; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
+.tnum { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.topbar .wrap { display: flex; align-items: center; gap: 10px; padding-block: 10px; }
+.brand { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
+.mark { width: 28px; height: 28px; border-radius: 50%; background: repeating-linear-gradient(135deg, var(--primary) 0 3px, var(--rose-soft) 3px 7px); box-shadow: inset 0 0 0 2px var(--primary); }
+.brand { font-style: italic; color: var(--primary); }
+.sync { margin-left: auto; font-size: .75rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.sync i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.sync[data-s="ok"] i { background: var(--ok); }
+.sync[data-s="local"] i { background: var(--warn); }
+.sync[data-s="err"] i { background: var(--danger); }
+
+main { padding-block: 18px 120px; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 10px; }
+
+/* Day header */
+.dayhead { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+.daynav { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.iconbtn { width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; }
+.iconbtn svg { width: 18px; height: 18px; }
+.iconbtn[disabled] { opacity: .35; cursor: default; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; background: var(--surface-2); color: var(--ink); border: 0; }
+.pill.sun { background: var(--sun-soft); color: var(--ink); }
+.pill.sun b { color: var(--sun); }
+.pill.flare { background: var(--danger-soft); color: var(--danger); }
+.pill.link { background: var(--primary-soft); color: var(--primary); }
+.pill.cyc { background: var(--rose-soft); color: var(--primary); }
+.chips.rose .chip[aria-pressed="true"] { background: var(--rose-soft); border-color: var(--rose); color: var(--primary); }
+.cell.period::before { content: ""; position: absolute; left: 2px; bottom: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--rose); box-shadow: 0 0 0 1.5px var(--surface); }
+.ring { position: relative; width: 92px; height: 92px; }
+.ring svg { width: 92px; height: 92px; transform: rotate(-90deg); }
+.ring .val { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; line-height: 1; }
+.ring .val small { display: block; font-family: var(--font-body); font-size: .65rem; font-weight: 600; color: var(--muted); margin-top: 3px; letter-spacing: .04em; }
+.quote { font-size: .92rem; color: var(--muted); margin-top: 8px; max-width: 40ch; }
+
+/* Checklist */
+.group { display: flex; flex-direction: column; }
+.group + .group { margin-top: 12px; }
+.check { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border: 0; background: none; text-align: left; width: 100%; border-bottom: 1px solid var(--line); }
+.group .check:last-child { border-bottom: 0; }
+.box { flex: none; width: 26px; height: 26px; border-radius: 9px; border: 2px solid var(--line); display: grid; place-items: center; transition: background .15s, border-color .15s; }
+.box svg { width: 15px; height: 15px; opacity: 0; stroke: var(--primary-ink); }
+.check[aria-pressed="true"] .box { background: var(--primary); border-color: var(--primary); }
+.check[aria-pressed="true"] .box svg { opacity: 1; }
+.check[aria-pressed="true"] .nm { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.check .txt { min-width: 0; flex: 1; }
+.check .nm { font-weight: 600; display: block; }
+.check .dt { font-size: .8rem; color: var(--muted); display: block; }
+.tag { flex: none; font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 3px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
+.check.on .box { background: var(--primary); border-color: var(--primary); }
+.check.on .box svg { opacity: 1; }
+.vchips { margin-top: 8px; }
+.vchips .chip { padding: 5px 11px; font-size: .8rem; }
+.card.alert { background: var(--sun-soft); box-shadow: none; }
+.upcoming { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.upcoming p { margin: 6px 0 0; font-size: .88rem; }
+.upcoming b { color: var(--sun); }
+.wt { max-width: 140px; font-size: 1.25rem; font-weight: 700; font-family: var(--font-display); }
+.phase { display: grid; grid-template-columns: 1fr 84px auto; gap: 8px; align-items: end; }
+.streak-mini { flex: none; font-size: .78rem; font-weight: 700; color: var(--sun); min-width: 28px; text-align: right; }
+
+/* Water */
+.water { display: flex; align-items: center; gap: 14px; }
+.glasses { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 0; }
+.glass { width: 20px; height: 26px; border-radius: 3px 3px 7px 7px; border: 2px solid var(--primary); background: transparent; padding: 0; }
+.glass.full { background: var(--primary); }
+.stepper { display: flex; gap: 6px; }
+.stepper button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); font-size: 1.2rem; font-weight: 700; }
+
+/* Retainer */
+.bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--primary); border-radius: 99px; }
+.bar.due > i { background: var(--sun); }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.btn { border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; background: var(--primary); color: var(--primary-ink); }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+.btn.danger { background: var(--danger); color: var(--surface); }
+.btn.sm { padding: 7px 12px; font-size: .85rem; border-radius: 10px; }
+
+/* Scores */
+.score { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding-block: 8px; }
+.score + .score { border-top: 1px solid var(--line); }
+.score .nm { font-weight: 600; }
+.score .hint { font-size: .78rem; color: var(--muted); grid-column: 1 / -1; margin-top: -2px; }
+.score .num { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; min-width: 2.2ch; text-align: right; }
+.score.unset .num { color: var(--muted); font-size: .8rem; font-family: var(--font-body); font-weight: 600; }
+.score input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--primary); height: 28px; }
+.score.unset input[type=range] { opacity: .45; }
+.score.bad .num { color: var(--danger); }
+.score.mid .num { color: var(--warn); }
+.score.good .num { color: var(--ok); }
+
+/* Toggles & chips */
+.toggle { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; padding: 6px 0; text-align: left; }
+.toggle .txt { flex: 1; min-width: 0; }
+.toggle .nm { font-weight: 600; display: block; }
+.toggle .dt { font-size: .8rem; color: var(--muted); display: block; }
+.sw { flex: none; width: 46px; height: 28px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); position: relative; transition: background .15s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+.toggle[aria-pressed="true"] .sw { background: var(--primary); border-color: var(--primary); }
+.toggle[aria-pressed="true"] .sw::after { transform: translateX(18px); }
+.toggle.flare[aria-pressed="true"] .sw { background: var(--danger); border-color: var(--danger); }
+.sub { padding: 10px 0 4px; display: flex; flex-direction: column; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: .85rem; font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.chips.red .chip[aria-pressed="true"] { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+.divider { height: 1px; background: var(--line); margin: 8px 0; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > span { font-size: .8rem; font-weight: 600; color: var(--muted); }
+input[type=text], input[type=number], input[type=date], select, textarea { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 80px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.counter { display: flex; align-items: center; gap: 10px; }
+.counter b { font-family: var(--font-display); font-size: 1.2rem; min-width: 2ch; text-align: center; }
+
+/* Streaks */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat { background: var(--surface); border-radius: 14px; padding: 12px; box-shadow: var(--shadow); }
+.stat b { display: block; font-family: var(--font-display); font-size: 1.6rem; line-height: 1.1; }
+.stat span { font-size: .75rem; color: var(--muted); font-weight: 600; }
+.stat.sun b { color: var(--sun); }
+.heat { display: grid; grid-template-columns: auto repeat(12, 1fr); gap: 4px; align-items: center; }
+.heat .dl { font-size: .65rem; color: var(--muted); padding-right: 4px; }
+.cell { aspect-ratio: 1; max-width: 100%; border-radius: 5px; border: 0; padding: 0; position: relative; background: var(--surface-2); }
+.cell[data-l="1"] { background: color-mix(in srgb, var(--primary) 25%, var(--surface-2)); }
+.cell[data-l="2"] { background: color-mix(in srgb, var(--primary) 50%, var(--surface-2)); }
+.cell[data-l="3"] { background: color-mix(in srgb, var(--primary) 75%, var(--surface-2)); }
+.cell[data-l="4"] { background: var(--primary); }
+.cell.flare::after { content: ""; position: absolute; right: 2px; top: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 1.5px var(--surface); }
+.cell.today { box-shadow: 0 0 0 2px var(--sun); }
+.cell.future { opacity: .3; cursor: default; }
+.legend { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--muted); flex-wrap: wrap; }
+.legend .cell { width: 12px; height: 12px; display: inline-block; }
+.hrow { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.hrow:last-child { border-bottom: 0; }
+.hrow .nm { font-weight: 600; min-width: 0; }
+.hrow .v { text-align: right; font-size: .8rem; color: var(--muted); }
+.hrow .v b { display: block; font-family: var(--font-display); font-size: 1.1rem; color: var(--ink); }
+.hrow .v.sun b { color: var(--sun); }
+.goal { display: flex; flex-direction: column; gap: 8px; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); display: inline-block; }
+.dots i.on { background: var(--sun); }
+
+/* Insights */
+.chart { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--muted); font-size: 10px; font-family: var(--font-body); }
+.keyline { display: flex; gap: 14px; font-size: .78rem; color: var(--muted); flex-wrap: wrap; }
+.keyline i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+.finding { display: flex; flex-direction: column; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.finding:last-child { border-bottom: 0; padding-bottom: 0; }
+.finding:first-child { padding-top: 0; }
+.finding .badge { align-self: flex-start; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+.badge.pattern { background: var(--sun-soft); color: var(--sun); }
+.badge.none { background: var(--surface-2); color: var(--muted); }
+.badge.wait { background: var(--primary-soft); color: var(--primary); }
+.cmp { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; font-size: .82rem; }
+.cmp .bar { height: 10px; }
+.cmp .bar.alt > i { background: var(--danger); }
+.cmp .val { font-weight: 700; min-width: 3ch; text-align: right; }
+.tally { display: flex; flex-direction: column; gap: 6px; }
+.tally .row { flex-wrap: nowrap; }
+.tally .row span:first-child { flex: 0 0 120px; font-size: .85rem; }
+.tally .bar { flex: 1; }
+.tally .row b { width: 2ch; text-align: right; font-size: .85rem; }
+.empty { text-align: center; padding: 26px 14px; color: var(--muted); }
+.empty h3 { color: var(--ink); margin-bottom: 6px; }
+.note { font-size: .78rem; color: var(--muted); }
+
+/* Plan */
+.hedit { border-bottom: 1px solid var(--line); padding: 10px 0; }
+.hedit:last-child { border-bottom: 0; }
+.hedit summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; font-weight: 600; }
+.hedit summary::-webkit-details-marker { display: none; }
+.hedit summary .tag { margin-left: auto; }
+.hedit .body { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
+.days { display: flex; gap: 4px; flex-wrap: wrap; }
+.days .chip { padding: 6px 0; width: 38px; text-align: center; }
+.confirm { background: var(--danger-soft); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .85rem; }
+
+/* Tab bar */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabs .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+.tab { border: 0; background: none; padding: 9px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: .72rem; font-weight: 600; color: var(--muted); }
+.tab svg { width: 22px; height: 22px; }
+.tab[aria-current="page"] { color: var(--primary); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 12px; font-size: .85rem; font-weight: 600; z-index: 9; max-width: calc(100% - 32px); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (max-width: 380px) { .stats { grid-template-columns: 1fr 1fr; } h1 { font-size: 1.5rem; } }
+</style>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><span class="mark" aria-hidden="true"></span>Steady</div>
+    <div class="sync" id="sync" data-s="wait"><i></i><span>Connecting…</span></div>
+  </div>
+</header>
+<main class="wrap" id="app" aria-live="polite"></main>
+<nav class="tabs" aria-label="Sections">
+  <div class="in">
+    <button class="tab" data-tab="today" id="tab-today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>Today</button>
+    <button class="tab" data-tab="streaks" id="tab-streaks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.2 1-3.7 2.2-4.8.3 1.6 1 2.6 2 3.1C11 9 11.3 5.6 12 3Z"/></svg>Streaks</button>
+    <button class="tab" data-tab="insights" id="tab-insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="m5 15 4-5 4 3 6-8"/></svg>Insights</button>
+    <button class="tab" data-tab="plan" id="tab-plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg>My plan</button>
+  </div>
+</nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- constants ---------- */
+const CATS = { med: "Medication", supp: "Supplement", move: "Movement", rest: "Recovery", pots: "POTS", care: "Care" };
+const TIMES = [["morning", "Morning"], ["midday", "Daytime"], ["evening", "Evening"]];
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const SCORES = [
+  { k: "pain", nm: "Pain", hint: "0 none · 10 worst imaginable", worse: "high" },
+  { k: "fatigue", nm: "Fatigue", hint: "0 full energy · 10 can't get up", worse: "high" },
+  { k: "fog", nm: "Brain fog", hint: "0 clear · 10 can't think", worse: "high" },
+  { k: "dizzy", nm: "Dizziness / POTS", hint: "0 none · 10 near-fainting", worse: "high" },
+  { k: "stress", nm: "Stress / overwhelm", hint: "0 calm · 10 overwhelmed", worse: "high" },
+  { k: "sleep", nm: "Sleep quality last night", hint: "0 awful · 10 restorative", worse: "low" },
+];
+const SYMPTOMS = ["Joint pain", "Subluxation", "Muscle spasm", "Fatigue crash", "Dizziness / fainting", "Racing heart", "Brain fog", "Headache / migraine", "Gut upset", "Rash / skin", "Low mood", "Insomnia"];
+const TRIGGERS = ["Travel", "Poor sleep", "Stress", "Gluten", "Overexertion", "Heat", "Weather change", "Hormonal", "Illness", "Missed meds", "Long standing", "Alcohol"];
+const TRAVEL_TYPES = ["Flight", "Car", "Train", "Bus / coach"];
+const QUOTES = [
+  "Consistency over intensity. Small things, done often.",
+  "Rest is part of the plan, not a break from it.",
+  "A flare is information, not failure.",
+  "Stronger in 2027 starts with today's small reps.",
+  "Pace the day so the day doesn't pace you.",
+  "Every tick is a vote for the body you're building.",
+  "Gentle and steady still moves forward.",
+];
+
+const DEFAULT_SETTINGS = () => ({
+  v: 1,
+  planV: 2,
+  weightUnit: "kg",
+  created: keyOf(new Date()),
+  habits: [
+    { id: "thyroid", name: "Thyroid medication", detail: "Empty stomach, 30–60 min before food", cat: "med", time: "morning", days: null },
+    { id: "hrt", name: "HRT", detail: "", cat: "med", time: "morning", days: null },
+    { id: "supp-am", name: "Morning supplements", detail: "", cat: "supp", time: "morning", days: null },
+    { id: "salt", name: "Electrolytes / salt", detail: "Before getting up if you can", cat: "pots", time: "morning", days: null },
+    { id: "compression", name: "Compression wear", detail: "", cat: "pots", time: "morning", days: null },
+    { id: "daylight", name: "Morning daylight, 10 min", detail: "Helps set your cortisol rhythm", cat: "rest", time: "morning", days: null },
+    { id: "strength", name: "Physio, osteo or strength", detail: "Low load, joint-stable, controlled range", cat: "move", time: "midday", days: [1, 3, 5], variants: ["Physio", "Osteo", "Strength"] },
+    { id: "walk", name: "Gentle movement", detail: "Walk, recumbent bike or pool", cat: "move", time: "midday", days: null },
+    { id: "pace", name: "Pacing break", detail: "Lie down 15–20 min, legs raised", cat: "rest", time: "midday", days: null },
+    { id: "supp-pm", name: "Evening supplements", detail: "", cat: "supp", time: "evening", days: null },
+    { id: "winddown", name: "Screens off, wind down", detail: "Dim lights an hour before bed", cat: "rest", time: "evening", days: null },
+    { id: "retainers", name: "Retainers in", detail: "", cat: "care", time: "evening", days: null },
+  ],
+  water: { targetMl: 2500, glassMl: 250 },
+  retainer: { lastSwap: keyOf(new Date()), interval: 14, set: 1 },
+  goals: { strengthHabit: "strength", strengthPerWeek: 3, steadyPct: 80 },
+});
+
+/* ---------- date helpers ---------- */
+function keyOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function parseKey(k) { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); }
+function addDays(k, n) { const d = parseKey(k); d.setDate(d.getDate() + n); return keyOf(d); }
+function diffDays(a, b) { return Math.round((parseKey(b) - parseKey(a)) / 86400000); }
+const todayKey = () => keyOf(new Date());
+
+/* ---------- state ---------- */
+const LS = "steady.v1";
+let settings = null;
+let days = {};
+let view = "today";
+let curDay = todayKey();
+let editOpen = null;
+let confirmDel = null;
+let backend = null; // {settingsRef, daysCol}
+let downloads = null;
+
+function lsRead() { try { return JSON.parse(localStorage.getItem(LS) || "null"); } catch { return null; } }
+function lsWrite() { try { localStorage.setItem(LS, JSON.stringify({ settings, days })); } catch {} }
+
+// One-off upgrades to a saved plan. Each step must be safe to run twice.
+function migrate(s) {
+  const v0 = s.planV || 1;
+  const H = s.habits ||= [];
+  const find = id => H.find(h => h.id === id);
+  if ((s.planV || 1) < 2) {
+    const st = find("strength");
+    if (st && !st.variants) { st.variants = ["Physio", "Osteo", "Strength"]; if (st.name === "Strength / physio session") st.name = "Physio, osteo or strength"; }
+    s.weightUnit ||= "kg";
+    s.planV = 2;
+  }
+  if (s.planV < 3) {
+    // the medication and supplement plan, sent 11 Nov 2026
+    const t = keyOf(new Date());
+    const rm = (id, name) => { const i = H.findIndex(h => h.id === id && h.name === name); if (i >= 0) H.splice(i, 1); };
+    const add = (h, beforeId) => { if (find(h.id)) return; const i = H.findIndex(x => x.id === beforeId); i >= 0 ? H.splice(i, 0, h) : H.push(h); };
+    rm("supp-am", "Morning supplements");
+    rm("supp-pm", "Evening supplements");
+    const hrt = find("hrt"); if (hrt && hrt.name === "HRT") hrt.name = "HRT gel";
+    const salt = find("salt"); if (salt && salt.name === "Electrolytes / salt") salt.name = "Electrolytes";
+    add({ id: "vitdk2", name: "Vitamin D / K2", detail: "", cat: "supp", time: "morning" }, "salt");
+    add({ id: "glp1", name: "GLP-1 injection", detail: "For inflammation", cat: "med", time: "midday", sched: { type: "interval", every: 14, start: t } }, "strength");
+    add({ id: "ldn", name: "LDN", detail: "9 drops", cat: "med", time: "evening" }, "winddown");
+    add({ id: "hrt-pill", name: "HRT pill", detail: "", cat: "med", time: "evening",
+      sched: { type: "cycle", anchor: "period", offset: 2, start: t, phases: [{ dose: "1 pill (weeks 1–2)", days: 14 }, { dose: "1 pill (weeks 3–4)", days: 14 }] } }, "winddown");
+    add({ id: "fishoil", name: "Fish oil", detail: "", cat: "supp", time: "evening" }, "winddown");
+    add({ id: "magnesium", name: "Magnesium glycinate", detail: "", cat: "supp", time: "evening" }, "winddown");
+    s.retainer = Object.assign({ set: 1 }, s.retainer, { lastSwap: "2026-11-10", interval: 14 });
+    s.extras ||= ["Sauna", "Sauna blanket", "Red light therapy", "Epsom salt bath", "Massage", "Breathwork"];
+    s.planV = 3;
+  }
+  if (s.planV < 4) {
+    // no compression wear; GLP-1 restarts Monday 16 Nov 2026 after reordering
+    const i = H.findIndex(h => h.id === "compression"); if (i >= 0) H.splice(i, 1);
+    const g = find("glp1"); if (g) g.sched = { type: "interval", every: 14, start: "2026-11-16" };
+    s.planV = 4;
+  }
+  if (s.planV < 5) {
+    // cardio joins the training habit; GLP-1 pen supply (4 doses, new pen from Mon 16 Nov)
+    const st = find("strength");
+    if (st) {
+      st.variants = ["Strength", "Cardio", ...(st.variants || []).filter(v => v !== "Strength" && v !== "Cardio")];
+      if (st.name === "Physio, osteo or strength") st.name = "Training & therapy";
+      if (st.detail === "Low load, joint-stable, controlled range") st.detail = "Tick all you did. Cardio: recumbent bike, rowing or pool are kindest on POTS";
+    }
+    const g = find("glp1"); if (g && !g.stock) g.stock = { count: 4, asOf: "2026-11-16", perDose: 1, unit: "doses", pack: 4, lead: 10 };
+    s.planV = 5;
+  }
+  if (s.planV < 6) {
+    // melatonin, 1 or 2 tablets depending on the night
+    if (!find("melatonin")) { const i = H.findIndex(x => x.id === "winddown"); const h = { id: "melatonin", name: "Melatonin", detail: "1 or 2 tablets, as you need", cat: "med", time: "evening", variants: ["1 tablet", "2 tablets"] }; i >= 0 ? H.splice(i, 0, h) : H.push(h); }
+    s.planV = 6;
+  }
+  return s.planV !== v0;
+}
+function withDefaults(data) { const def = DEFAULT_SETTINGS(); delete def.planV; return JSON.parse(JSON.stringify(Object.assign(def, data))); }
+
+const cached = lsRead();
+settings = (cached && cached.settings) ? withDefaults(cached.settings) : DEFAULT_SETTINGS();
+migrate(settings);
+days = (cached && cached.days) || {};
+
+function day(k) {
+  if (!days[k]) days[k] = { done: {}, water: 0, scores: {}, flare: null, travel: null, gluten: "none", sublux: 0, notes: "" };
+  const d = days[k];
+  d.done ||= {}; d.scores ||= {};
+  return d;
+}
+const hasDay = k => !!days[k];
+
+/* ---------- persistence (private per-person db, with device cache) ---------- */
+const timers = {}, chains = {};
+function queueWrite(id, fn) {
+  clearTimeout(timers[id]);
+  timers[id] = setTimeout(() => {
+    chains[id] = (chains[id] || Promise.resolve()).then(fn).then(() => setSync("ok"), e => { console.warn(e); setSync(e && e.code === "quota_exceeded" ? "err" : "err", e && e.code === "quota_exceeded" ? "Storage full" : "Not saved, retrying on next change"); });
+  }, 500);
+}
+function saveDay(k) {
+  lsWrite();
+  if (!backend) return;
+  const body = JSON.parse(JSON.stringify(days[k]));
+  queueWrite("d" + k, () => backend.daysCol.doc(k).set(body));
+}
+function saveSettings() {
+  lsWrite();
+  if (!backend) return;
+  const body = JSON.parse(JSON.stringify(settings));
+  queueWrite("settings", () => backend.settingsRef.set(body));
+}
+function setSync(s, msg) {
+  const el = document.getElementById("sync");
+  el.dataset.s = s;
+  el.querySelector("span").textContent = msg || ({ ok: "Synced", local: "Saved on this device", err: "Sync problem", wait: "Connecting…" })[s];
+}
+
+async function connect() {
+  const c = window.claude;
+  if (!c || typeof c.use !== "function") { setSync("local"); return; }
+  const loadTimer = setTimeout(() => setSync("local", "Offline, saving on this device"), 10000);
+  try {
+    const [db, user] = await Promise.all([c.use("db"), c.use("user")]);
+    c.use("downloads").then(d => { downloads = d; if (view === "plan") render(); }).catch(() => {});
+    const uid = user ? await user.id() : null;
+    if (!db || !uid) { clearTimeout(loadTimer); setSync("local", "Sign in to sync. Saving on this device"); return; }
+    backend = {
+      settingsRef: db.doc("data/users/" + uid + "/settings"),
+      daysCol: db.doc("data/users/" + uid + "/log").collection("days"),
+    };
+    let settled = false;
+    backend.settingsRef.onSnapshot(snap => {
+      if (snap.exists) {
+        settings = withDefaults(snap.data());
+        const changed = migrate(settings);
+        if (changed && !snap.metadata.fromCache) saveSettings();
+        lsWrite(); softRender();
+      }
+      else if (!snap.metadata.fromCache && !settled) { settled = true; saveSettings(); }
+      if (!snap.metadata.fromCache) { clearTimeout(loadTimer); setSync("ok"); }
+    }, e => { clearTimeout(loadTimer); setSync("err", "Sync stopped. Reopen to reconnect"); });
+    let firstDays = true;
+    backend.daysCol.onSnapshot(snap => {
+      const remote = {};
+      snap.docs.forEach(d => { remote[d.id] = JSON.parse(JSON.stringify(d.data())); });
+      if (firstDays && !snap.metadata.fromCache) {
+        firstDays = false;
+        // push any entries made on this device before sync connected
+        Object.keys(days).forEach(k => { if (!remote[k] && meaningful(days[k])) saveDay(k); });
+      }
+      Object.assign(days, remote);
+      lsWrite();
+      softRender();
+    }, e => setSync("err", "Sync stopped. Reopen to reconnect"));
+  } catch (e) { clearTimeout(loadTimer); setSync("local"); }
+}
+function meaningful(d) { return d && (Object.keys(d.done || {}).length || d.water || d.weight != null || d.period || (d.extras || []).length || (d.cycleSx || []).length || Object.keys(d.scores || {}).length || d.flare || d.travel || d.notes || d.sublux || (d.gluten && d.gluten !== "none")); }
+function softRender() {
+  const a = document.activeElement;
+  if (a && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && a.type !== "range"))) return;
+  render();
+}
+
+/* ---------- logic ---------- */
+const habits = () => settings.habits || [];
+function sched(h) { return h.sched || (h.days ? { type: "weekly", days: h.days } : { type: "daily" }); }
+function cyclePhase(h, k) {
+  const s = sched(h);
+  if (s.type !== "cycle" || !s.phases || !s.phases.length) return null;
+  let start = s.start || settings.created;
+  if (s.anchor === "period") { const off = Number(s.offset) || 0; cycleStarts().forEach(c => { const a = addDays(c, off); if (a <= k && a > start) start = a; }); }
+  if (k < start) return null;
+  const lens = s.phases.map(p => Math.max(1, Number(p.days) || 1));
+  let off = diffDays(start, k) % lens.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < lens.length; i++) { if (off < lens[i]) return { dose: s.phases[i].dose || "", i, day: off + 1, len: lens[i] }; off -= lens[i]; }
+  return null;
+}
+function scheduled(h, k) {
+  const s = sched(h);
+  if (s.type === "weekly") return !s.days || !s.days.length || s.days.includes(parseKey(k).getDay());
+  if (s.type === "interval") { const st = s.start || settings.created; const n = Math.max(1, Number(s.every) || 1); return k >= st && diffDays(st, k) % n === 0; }
+  if (s.type === "cycle") { const p = cyclePhase(h, k); return !!(p && p.dose.trim()); }
+  return true;
+}
+function nextDue(h, from) { for (let i = 1; i <= 120; i++) if (scheduled(h, addDays(from, i))) return i; return null; }
+function schedText(h) {
+  const s = sched(h);
+  if (s.type === "weekly" && s.days && s.days.length) return s.days.map(i => DOW[i]).join(" · ");
+  if (s.type === "interval") { const n = Number(s.every) || 1; return n === 14 ? "Fortnightly" : n === 7 ? "Weekly" : `Every ${n} days`; }
+  if (s.type === "cycle") return (s.phases || []).map(p => `${p.dose || "break"} × ${p.days}d`).join(" → ") + ", repeating";
+  return "Daily";
+}
+/* period: a new cycle starts on a light/medium/heavy day after 4+ days without bleeding */
+const isPeriod = k => !!(days[k] && days[k].period && days[k].period !== "spot");
+let _cs = null; // memo, cleared on every render
+function cycleStarts() { if (_cs) return _cs; const out = []; let prev = null; Object.keys(days).filter(isPeriod).sort().forEach(k => { if (!prev || diffDays(prev, k) > 3) out.push(k); prev = k; }); return (_cs = out); }
+function cycleInfo(k) {
+  const all = cycleStarts(), st = all.filter(s => s <= k);
+  if (!st.length) return null;
+  const last = st[st.length - 1], lens = [];
+  for (let i = 1; i < all.length; i++) { const L = diffDays(all[i - 1], all[i]); if (L >= 15 && L <= 60) lens.push(L); }
+  const avgLen = lens.length ? Math.round(avg(lens.slice(-6))) : null;
+  const dayN = diffDays(last, k) + 1;
+  return { dayN, avgLen, nextIn: avgLen ? avgLen - dayN + 1 : null };
+}
+const vlist = v => Array.isArray(v) ? v : typeof v === "string" ? [v] : [];
+/* supply: count on hand as of a date, minus ticks since, projected over scheduled days */
+function stockAsOfNow(h) { const t = todayKey(); return days[t] && days[t].done[h.id] ? addDays(t, 1) : t; }
+function stockInfo(h) {
+  const s = h.stock; if (!s || s.count == null || s.count === "") return null;
+  const t = todayKey(), per = Number(s.perDose) || 1;
+  let used = 0;
+  for (let k = s.asOf || t; k <= t; k = addDays(k, 1)) if (days[k] && days[k].done[h.id]) used += per;
+  const left = Math.max(0, Number(s.count) - used);
+  let rem = left, k = stockAsOfNow(h) > (s.asOf || t) ? stockAsOfNow(h) : (s.asOf || t), lastCovered = null, runOut = null;
+  for (let i = 0; i < 400; i++, k = addDays(k, 1)) { if (!scheduled(h, k)) continue; if (rem >= per) { rem -= per; lastCovered = k; } else { runOut = k; break; } }
+  const lead = Number(s.lead) || 7, reorderBy = runOut ? addDays(runOut, -lead) : null;
+  return { left, unit: s.unit || "doses", lastCovered, runOut, reorderBy, due: !!(reorderBy && reorderBy <= t), pack: Number(s.pack) || 0 };
+}
+const shortDate = k => parseKey(k).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const toUnit = kg => settings.weightUnit === "lb" ? kg * 2.20462 : kg;
+const fromUnit = v => settings.weightUnit === "lb" ? v / 2.20462 : v;
+function lastWeightBefore(k) { for (let i = 1; i <= 90; i++) { const p = addDays(k, -i); if (days[p] && days[p].weight != null) return { k: p, w: days[p].weight }; } return null; }
+const waterGlasses = () => Math.max(1, Math.round(settings.water.targetMl / settings.water.glassMl));
+function dayProgress(k) {
+  const d = days[k] || { done: {}, water: 0 };
+  const hs = habits().filter(h => scheduled(h, k));
+  const total = hs.length + 1;
+  const done = hs.filter(h => d.done && d.done[h.id]).length + ((d.water || 0) >= waterGlasses() ? 1 : 0);
+  return { done, total, pct: total ? done / total : 0 };
+}
+const isFlare = k => !!(days[k] && days[k].flare);
+const isSteady = k => dayProgress(k).pct * 100 >= (settings.goals.steadyPct || 80);
+const startKey = () => { const ks = Object.keys(days).sort(); const c = settings.created || todayKey(); return ks.length && ks[0] < c ? ks[0] : c; };
+
+function streakOf(test, applies) {
+  // current: walk back from today; today counts only if already met; flare days pause.
+  const t = todayKey(), s = startKey();
+  let cur = 0, k = t;
+  if (!(applies(k) && !isFlare(k) && test(k))) k = addDays(k, -1);
+  for (; k >= s; k = addDays(k, -1)) {
+    if (!applies(k) || isFlare(k)) continue;
+    if (test(k)) cur++; else break;
+  }
+  let best = 0, run = 0;
+  for (k = s; k <= t; k = addDays(k, 1)) {
+    if (!applies(k) || isFlare(k)) continue;
+    if (test(k)) { run++; best = Math.max(best, run); } else if (k !== t) run = 0;
+  }
+  return { cur, best: Math.max(best, cur) };
+}
+const habitStreak = h => streakOf(k => !!(days[k] && days[k].done[h.id]), k => scheduled(h, k));
+const steadyStreak = () => streakOf(isSteady, () => true);
+
+function retainerInfo() {
+  const r = settings.retainer;
+  const elapsed = diffDays(r.lastSwap, todayKey());
+  const dayN = Math.max(1, elapsed + 1);
+  const left = r.interval - elapsed;
+  return { dayN, left, pct: Math.min(1, elapsed / r.interval), due: left <= 0, soon: left > 0 && left <= 2 };
+}
+function weekKeys(k) { const d = parseKey(k); const off = (d.getDay() + 6) % 7; const mon = addDays(k, -off); return [...Array(7)].map((_, i) => addDays(mon, i)); }
+
+/* ---------- utilities ---------- */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const fmt1 = n => (Math.round(n * 10) / 10).toFixed(1);
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
+function niceDate(k) {
+  const d = parseKey(k), t = todayKey();
+  const lab = k === t ? "Today" : k === addDays(t, -1) ? "Yesterday" : DOW[d.getDay()];
+  return { lab, full: d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }) };
+}
+function greeting() { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
+function scoreClass(s, v) { if (v == null) return "unset"; const bad = s.worse === "high" ? v : 10 - v; return bad >= 7 ? "bad" : bad >= 4 ? "mid" : "good"; }
+
+/* ---------- views ---------- */
+function render() {
+  _cs = null;
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.tab === view ? "page" : "false"));
+  const app = document.getElementById("app");
+  app.innerHTML = ({ today: vToday, streaks: vStreaks, insights: vInsights, plan: vPlan })[view]();
+}
+
+function vToday() {
+  const k = curDay, d = days[k] || day(k), t = todayKey();
+  const p = dayProgress(k), nd = niceDate(k);
+  const st = steadyStreak();
+  const C = 2 * Math.PI * 40;
+  const ri = retainerInfo();
+  const g = waterGlasses();
+  const quote = QUOTES[parseKey(k).getDate() % QUOTES.length];
+
+  let checks = "";
+  for (const [tid, tl] of TIMES) {
+    const hs = habits().filter(h => (h.time || "morning") === tid && scheduled(h, k));
+    if (!hs.length) continue;
+    checks += `<div class="group"><div class="label">${tl}</div>` + hs.map(h => {
+      const on = !!d.done[h.id];
+      const s = habitStreak(h).cur;
+      const ph = cyclePhase(h, k), sc = sched(h);
+      const si = stockInfo(h);
+      const det = [ph ? `<b>${esc(ph.dose)}</b> · day ${ph.day} of ${ph.len}` : "", sc.type === "interval" ? schedText(h) : "", si ? `${si.left} ${esc(si.unit)} left` : "", esc(h.detail)].filter(Boolean).join(" · ");
+      if (h.variants && h.variants.length) {
+        const vl = vlist(d.done[h.id]);
+        return `<div class="check ${on ? "on" : ""}">
+          <span class="box">${CHECK}</span>
+          <span class="txt"><span class="nm">${esc(h.name)}</span><span class="dt">${on ? "Done: " + esc(vl.join(" + ") || "yes") : (det || "Tap what you did")}</span>
+            <span class="chips vchips">${h.variants.map(x => `<button class="chip" data-act="tickv" data-id="${esc(h.id)}" data-v="${esc(x)}" aria-pressed="${vl.includes(x)}">${esc(x)}</button>`).join("")}</span></span>
+          <span class="streak-mini tnum" title="Current streak">${s >= 2 ? s + "d" : ""}</span>
+        </div>`;
+      }
+      return `<button class="check" data-act="tick" data-id="${esc(h.id)}" aria-pressed="${on}">
+        <span class="box">${CHECK}</span>
+        <span class="txt"><span class="nm">${esc(h.name)}</span>${det ? `<span class="dt">${det}</span>` : ""}</span>
+        <span class="tag">${CATS[h.cat] || "Other"}</span>
+        <span class="streak-mini tnum" title="Current streak">${s >= 2 ? s + "d" : ""}</span>
+      </button>`;
+    }).join("") + `</div>`;
+  }
+
+  const scores = SCORES.map(s => {
+    const v = d.scores[s.k];
+    return `<label class="score ${scoreClass(s, v)}" for="sc-${s.k}">
+      <span class="nm">${s.nm}</span><span class="num tnum" id="scv-${s.k}">${v == null ? "Not logged" : v}</span>
+      <input type="range" min="0" max="10" step="1" id="sc-${s.k}" data-score="${s.k}" value="${v == null ? (s.worse === "low" ? 5 : 0) : v}">
+      <span class="hint">${s.hint}</span>
+    </label>`;
+  }).join("");
+
+  const upcoming = habits().map(h => {
+    const s = sched(h);
+    if (s.type === "interval" && !scheduled(h, k)) { const n = nextDue(h, k); if (n != null && n <= 3) return `${esc(h.name)} <b>${n === 1 ? "tomorrow" : "in " + n + " days"}</b>`; }
+    if (s.type === "cycle") {
+      const p = cyclePhase(h, k);
+      if (p && p.len - p.day < 3) { const n = p.len - p.day + 1, nx = cyclePhase(h, addDays(k, n)); if (nx && nx.i !== p.i) return `${esc(h.name)} changes to <b>${esc(nx.dose || "a break")}</b> ${n === 1 ? "tomorrow" : "in " + n + " days"}`; }
+    }
+    return null;
+  }).filter(Boolean);
+
+  const unit = settings.weightUnit || "kg";
+  const prevW = lastWeightBefore(k);
+  let wNote = prevW ? `Last: ${fmt1(toUnit(prevW.w))} ${unit} (${niceDate(prevW.k).lab.toLowerCase() === "yesterday" ? "yesterday" : diffDays(prevW.k, k) + " days ago"})` : "No previous entry";
+  if (d.weight != null && prevW) { const ch = toUnit(d.weight) - toUnit(prevW.w); wNote = `${ch === 0 ? "No change" : (ch > 0 ? "+" : "−") + fmt1(Math.abs(ch)) + " " + unit} since ${diffDays(prevW.k, k) === 1 ? "yesterday" : "last entry"}`; }
+
+  const ci = cycleInfo(k);
+  const cycNote = !ci ? "Log your period here to track your cycle." : ci.nextIn == null ? "Log two or more periods to get a prediction." : ci.nextIn > 0 ? `Next period expected in about ${ci.nextIn} day${ci.nextIn === 1 ? "" : "s"} (average cycle ${ci.avgLen} days).` : `Period expected around now (average cycle ${ci.avgLen} days).`;
+  const f = d.flare, tr = d.travel;
+  return `<div class="stack">
+    <section class="dayhead">
+      <div>
+        <div class="label">${k === t ? greeting() : nd.lab}</div>
+        <h1>${esc(nd.full)}</h1>
+        <div class="daynav">
+          <button class="iconbtn" data-act="day" data-n="-1" aria-label="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button>
+          <button class="iconbtn" data-act="day" data-n="1" aria-label="Next day" ${k >= t ? "disabled" : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button>
+          ${k !== t ? `<button class="pill link" data-act="day" data-n="0">Back to today</button>` : `<span class="pill sun"><b class="tnum">${st.cur}</b> day steady streak</span>`}
+          ${f ? `<span class="pill flare">Flare day</span>` : ""}
+          ${ci && ci.dayN <= 60 ? `<span class="pill cyc">Cycle day ${ci.dayN}</span>` : ""}
+        </div>
+        <p class="quote">${esc(quote)}</p>
+      </div>
+      <div class="ring" role="img" aria-label="${p.done} of ${p.total} done">
+        <svg viewBox="0 0 92 92"><circle cx="46" cy="46" r="40" fill="none" stroke="var(--surface-2)" stroke-width="9"/><circle cx="46" cy="46" r="40" fill="none" stroke="${p.pct >= 1 ? "var(--sun)" : "var(--primary)"}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p.pct)}"/></svg>
+        <div class="val tnum">${p.done}/${p.total}<small>DONE</small></div>
+      </div>
+    </section>
+
+    ${k === t ? habits().map(h => ({ h, si: stockInfo(h) })).filter(x => x.si && x.si.due).map(({ h, si }) => `<section class="card alert">
+      <div class="label" style="color:var(--sun)">Reorder soon</div>
+      <h2 style="margin-top:2px">${esc(h.name)}</h2>
+      <p style="margin:6px 0 10px">${si.left} ${esc(si.unit)} left${si.lastCovered ? `, enough until ${shortDate(si.lastCovered)}` : ""}. ${si.runOut ? `Next one needed ${shortDate(si.runOut)}.` : ""}</p>
+      <div class="row">${si.pack ? `<button class="btn sm" data-act="restock" data-id="${esc(h.id)}">Got a new supply (+${si.pack})</button>` : ""}<button class="btn sm ghost" data-act="editsupply" data-id="${esc(h.id)}">Update supply</button></div>
+    </section>`).join("") : ""}
+
+    <section class="card">${checks || `<p class="muted">Nothing scheduled. Add habits in My plan.</p>`}
+      ${upcoming.length ? `<div class="upcoming"><div class="label">Coming up</div>${upcoming.map(u => `<p>${u}</p>`).join("")}</div>` : ""}</section>
+
+    <section class="card">
+      <div class="row between"><h2>Extras</h2><span class="note">Bonus recovery, never affects streaks</span></div>
+      <div class="chips" style="margin-top:10px">${(settings.extras || []).map(x => `<button class="chip" data-act="extra" data-v="${esc(x)}" aria-pressed="${(d.extras || []).includes(x)}">${esc(x)}</button>`).join("") || `<span class="note">Add extras in My plan.</span>`}</div>
+    </section>
+
+    <section class="card">
+      <div class="row between"><h2>Weight</h2><span class="note tnum">${wNote}</span></div>
+      <div class="row" style="margin-top:10px">
+        <input type="number" id="wt" class="wt tnum" inputmode="decimal" step="0.1" min="0" data-field="weight" aria-label="Weight in ${unit}" value="${d.weight != null ? fmt1(toUnit(d.weight)) : ""}" placeholder="${prevW ? fmt1(toUnit(prevW.w)) : "0.0"}">
+        <span class="muted" style="font-weight:600">${unit}</span>
+      </div>
+      <p class="note" style="margin:8px 0 0">Weigh at the same time each day, ideally on waking before food, so days compare fairly.</p>
+    </section>
+
+    <section class="card">
+      <div class="row between"><h2>Hydration</h2><span class="muted tnum">${((d.water || 0) * settings.water.glassMl / 1000).toFixed(2).replace(/0$/, "")} / ${(settings.water.targetMl / 1000).toFixed(1)} L</span></div>
+      <div class="water" style="margin-top:10px">
+        <div class="glasses" aria-label="${d.water || 0} of ${g} glasses">${[...Array(Math.max(g, d.water || 0))].map((_, i) => `<span class="glass ${i < (d.water || 0) ? "full" : ""}"></span>`).join("")}</div>
+        <div class="stepper"><button data-act="water" data-n="-1" aria-label="Remove a glass">−</button><button data-act="water" data-n="1" aria-label="Add a glass">+</button></div>
+      </div>
+      <p class="note" style="margin:8px 0 0">${settings.water.glassMl} ml per glass. Fluids and salt help keep POTS symptoms down.</p>
+    </section>
+
+    <section class="card">
+      <div class="row between"><h2>Retainers</h2><span class="pill ${ri.due ? "sun" : ""}">Set ${settings.retainer.set}</span></div>
+      <p style="margin:8px 0">${ri.due ? `<b>Swap due${ri.left < 0 ? ` (${-ri.left} day${ri.left === -1 ? "" : "s"} over)` : " today"}.</b>` : `Day ${ri.dayN} of ${settings.retainer.interval}. Next swap in <b>${ri.left} day${ri.left === 1 ? "" : "s"}</b>.`}</p>
+      <div class="bar ${ri.due || ri.soon ? "due" : ""}"><i style="width:${ri.pct * 100}%"></i></div>
+      <div class="row" style="margin-top:12px"><button class="btn sm ${ri.due ? "" : "ghost"}" data-act="swap">Swapped to set ${settings.retainer.set + 1}</button></div>
+    </section>
+
+    <div class="section-head"><h2>How you feel</h2><span class="note">Slide to log</span></div>
+    <section class="card">${scores}</section>
+
+    <div class="section-head"><h2>Cycle</h2></div>
+    <section class="card">
+      <div class="field"><span>Period</span><div class="chips rose">${[["", "None"], ["spot", "Spotting"], ["light", "Light"], ["medium", "Medium"], ["heavy", "Heavy"]].map(([v, l]) => `<button class="chip" data-act="period" data-v="${v}" aria-pressed="${(d.period || "") === v}">${l}</button>`).join("")}</div></div>
+      <div class="field" style="margin-top:12px"><span>Cycle symptoms</span><div class="chips rose">${["Cramps", "Bloating", "Breast tenderness", "Mood swings", "Hormonal headache", "Hot flushes", "Night sweats"].map(s => `<button class="chip" data-act="csx" data-v="${s}" aria-pressed="${(d.cycleSx || []).includes(s)}">${s}</button>`).join("")}</div></div>
+      <p class="note" style="margin:10px 0 0">${cycNote}</p>
+    </section>
+
+    <div class="section-head"><h2>Events</h2></div>
+    <section class="card">
+      <button class="toggle flare" data-act="flare" aria-pressed="${!!f}"><span class="txt"><span class="nm">Flare-up</span><span class="dt">Flare days pause your streaks instead of breaking them</span></span><span class="sw"></span></button>
+      ${f ? `<div class="sub">
+        <div class="field"><span>Severity</span><div class="chips red">${["Mild", "Moderate", "Severe"].map(s => `<button class="chip" data-act="fsev" data-v="${s}" aria-pressed="${f.severity === s}">${s}</button>`).join("")}</div></div>
+        <div class="field"><span>Symptoms</span><div class="chips red">${SYMPTOMS.map(s => `<button class="chip" data-act="fsym" data-v="${esc(s)}" aria-pressed="${(f.symptoms || []).includes(s)}">${s}</button>`).join("")}</div></div>
+        <div class="field"><span>Possible triggers</span><div class="chips">${TRIGGERS.map(s => `<button class="chip" data-act="ftrig" data-v="${esc(s)}" aria-pressed="${(f.triggers || []).includes(s)}">${s}</button>`).join("")}</div></div>
+      </div>` : ""}
+      <div class="divider"></div>
+      <button class="toggle" data-act="travel" aria-pressed="${!!tr}"><span class="txt"><span class="nm">Travel day</span><span class="dt">Compared against pain and flares over the next 3 days</span></span><span class="sw"></span></button>
+      ${tr ? `<div class="sub">
+        <div class="chips">${TRAVEL_TYPES.map(s => `<button class="chip" data-act="ttype" data-v="${s}" aria-pressed="${tr.type === s}">${s}</button>`).join("")}</div>
+        <div class="grid2">
+          <label class="field" for="tr-hours"><span>Hours travelling</span><input type="number" id="tr-hours" min="0" step="0.5" inputmode="decimal" data-field="travel.hours" value="${tr.hours ?? ""}"></label>
+          <label class="field" for="tr-tz"><span>Time zones crossed</span><input type="number" id="tr-tz" min="0" step="1" inputmode="numeric" data-field="travel.tz" value="${tr.tz ?? ""}"></label>
+        </div>
+      </div>` : ""}
+      <div class="divider"></div>
+      <div class="field" style="padding:6px 0"><span>Gluten exposure</span><div class="chips">${[["none", "None"], ["maybe", "Possible"], ["yes", "Yes"]].map(([v, l]) => `<button class="chip" data-act="gluten" data-v="${v}" aria-pressed="${(d.gluten || "none") === v}">${l}</button>`).join("")}</div></div>
+      <div class="divider"></div>
+      <div class="row between" style="padding:6px 0"><div><div style="font-weight:600">Subluxations / dislocations</div><div class="note">Count for the day</div></div>
+        <div class="counter"><div class="stepper"><button data-act="sublux" data-n="-1" aria-label="Fewer">−</button></div><b class="tnum">${d.sublux || 0}</b><div class="stepper"><button data-act="sublux" data-n="1" aria-label="More">+</button></div></div></div>
+    </section>
+
+    <label class="field" for="notes"><span class="label">Notes</span><textarea id="notes" data-field="notes" placeholder="Anything worth remembering: what you ate, weather, appointments, wins.">${esc(d.notes)}</textarea></label>
+  </div>`;
+}
+
+function vStreaks() {
+  const t = todayKey(), st = steadyStreak();
+  const sk = startKey();
+  const logged = Object.keys(days).filter(k => meaningful(days[k]));
+  const last30 = [...Array(30)].map((_, i) => addDays(t, -i)).filter(k => k >= sk);
+  const consistency = last30.length ? Math.round(avg(last30.map(k => dayProgress(k).pct)) * 100) : 0;
+
+  // heatmap: 12 weeks, Monday-start columns
+  const wk = weekKeys(t)[0];
+  const cols = [...Array(12)].map((_, i) => addDays(wk, (i - 11) * 7));
+  let heat = "";
+  for (let r = 0; r < 7; r++) {
+    heat += `<span class="dl">${r % 2 === 0 ? ["Mon", "", "Wed", "", "Fri", "", "Sun"][r] : ""}</span>`;
+    for (const c of cols) {
+      const k = addDays(c, r);
+      if (k > t) { heat += `<span class="cell future"></span>`; continue; }
+      const pct = hasDay(k) ? dayProgress(k).pct : 0;
+      const l = pct === 0 ? 0 : pct < .34 ? 1 : pct < .67 ? 2 : pct < 1 ? 3 : 4;
+      heat += `<button class="cell ${isFlare(k) ? "flare" : ""} ${isPeriod(k) ? "period" : ""} ${k === t ? "today" : ""}" data-l="${l}" data-act="goto" data-k="${k}" aria-label="${k}: ${Math.round(pct * 100)}% done${isFlare(k) ? ", flare" : ""}"></button>`;
+    }
+  }
+
+  // weekly goals
+  const wks = weekKeys(t);
+  const sh = habits().find(h => h.id === settings.goals.strengthHabit);
+  const strengthDone = sh ? wks.filter(k => days[k] && days[k].done[sh.id]).length : 0;
+  const target = settings.goals.strengthPerWeek || 3;
+  const hydraDays = wks.filter(k => k <= t && days[k] && (days[k].water || 0) >= waterGlasses()).length;
+  const elapsedWk = wks.filter(k => k <= t).length;
+
+  const mix = h => {
+    if (!h.variants || !h.variants.length) return "";
+    const c = {}; [...Array(30)].map((_, i) => addDays(t, -i)).forEach(k => vlist(days[k] && days[k].done[h.id]).forEach(v => c[v] = (c[v] || 0) + 1));
+    const parts = Object.entries(c).map(([n, x]) => `${esc(n)} ${x}`);
+    return parts.length ? `<br><span class="note">Last 30 days: ${parts.join(" · ")}</span>` : "";
+  };
+  const rows = habits().map(h => ({ h, s: habitStreak(h) })).sort((a, b) => b.s.cur - a.s.cur).map(({ h, s }) =>
+    `<div class="hrow"><span class="nm">${esc(h.name)}<br><span class="note">${esc(schedText(h))}</span>${mix(h)}</span>
+      <span class="v sun"><b class="tnum">${s.cur}</b>now</span><span class="v"><b class="tnum">${s.best}</b>best</span></div>`).join("");
+
+  return `<div class="stack">
+    <div><div class="label">Streaks</div><h1>Showing up, steadily</h1></div>
+    <div class="stats">
+      <div class="stat sun"><b class="tnum">${st.cur}</b><span>Steady-day streak</span></div>
+      <div class="stat"><b class="tnum">${st.best}</b><span>Best streak</span></div>
+      <div class="stat"><b class="tnum">${consistency}%</b><span>Last 30 days</span></div>
+    </div>
+    <p class="note" style="margin:0">A steady day means ${settings.goals.steadyPct || 80}% or more of the day's plan done. Flare days are paused, so resting never costs you a streak.</p>
+
+    <section class="card">
+      <div class="row between" style="margin-bottom:12px"><h2>Last 12 weeks</h2><span class="note">Tap a day to open it</span></div>
+      <div class="heat">${heat}</div>
+      <div class="legend" style="margin-top:12px">Less <span class="cell" data-l="0"></span><span class="cell" data-l="1"></span><span class="cell" data-l="2"></span><span class="cell" data-l="3"></span><span class="cell" data-l="4"></span> More <span style="margin-left:10px" class="cell flare" data-l="0"></span> Flare <span style="margin-left:6px" class="cell period" data-l="0"></span> Period</div>
+    </section>
+
+    <section class="card goal">
+      <div class="row between"><h2>Toward 2027</h2><span class="note">This week</span></div>
+      <div><div class="row between"><span style="font-weight:600">${esc(sh ? sh.name : "Strength")} sessions</span><span class="tnum muted">${strengthDone} of ${target}</span></div>
+        <div class="dots" style="margin-top:6px">${[...Array(target)].map((_, i) => `<i class="${i < strengthDone ? "on" : ""}"></i>`).join("")}</div>
+        ${(() => { if (!sh || !sh.variants) return ""; const c = {}; wks.forEach(k => vlist(days[k] && days[k].done[sh.id]).forEach(v => c[v] = (c[v] || 0) + 1));
+          const p = sh.variants.filter(v => c[v]).map(v => `${esc(v)} ${c[v]}`); return p.length ? `<p class="note" style="margin:6px 0 0">This week: ${p.join(" · ")}</p>` : ""; })()}</div>
+      <div><div class="row between"><span style="font-weight:600">Hydration target hit</span><span class="tnum muted">${hydraDays} of ${elapsedWk} days</span></div>
+        <div class="bar" style="margin-top:6px"><i style="width:${elapsedWk ? hydraDays / elapsedWk * 100 : 0}%"></i></div></div>
+      <p class="note" style="margin:0">Building strength with EDS works best with slow progress and consistent, low-load sessions. Adjust the weekly target in My plan.</p>
+    </section>
+
+    <section class="card"><h2 style="margin-bottom:4px">By habit</h2>${rows}</section>
+    ${(() => {
+      const c = {}; [...Array(30)].map((_, i) => addDays(t, -i)).forEach(k => (days[k] && days[k].extras || []).forEach(x => c[x] = (c[x] || 0) + 1));
+      const e = Object.entries(c).sort((a, b) => b[1] - a[1]); if (!e.length) return "";
+      const mx = e[0][1];
+      return `<section class="card"><div class="row between" style="margin-bottom:10px"><h2>Extras</h2><span class="note">Last 30 days</span></div><div class="tally">${e.map(([n, x]) => `<div class="row"><span>${esc(n)}</span><div class="bar"><i style="width:${x / mx * 100}%;background:var(--rose)"></i></div><b class="tnum">${x}</b></div>`).join("")}</div></section>`;
+    })()}
+    ${logged.length ? "" : `<p class="note">Your streaks grow as you tick things off on the Today tab.</p>`}
+  </div>`;
+}
+
+/* ---------- insights ---------- */
+function cmpBlock(title, labelA, a, labelB, b, metricName, higherWorse = true, minN = 3) {
+  const nA = a.length, nB = b.length;
+  if (nA < minN || nB < minN) {
+    return `<div class="finding"><span class="badge wait">Gathering data</span><h3>${title}</h3>
+      <p class="note" style="margin:0">Needs at least ${minN} logged days in each group. So far: ${nA} ${labelA.toLowerCase()}, ${nB} ${labelB.toLowerCase()}.</p></div>`;
+  }
+  const mA = avg(a), mB = avg(b), dlt = mA - mB;
+  const worse = higherWorse ? dlt : -dlt;
+  const badge = worse >= 1 ? `<span class="badge pattern">Possible pattern</span>` : worse <= -1 ? `<span class="badge pattern">Possible pattern</span>` : `<span class="badge none">No clear difference</span>`;
+  const sentence = Math.abs(dlt) < 1 ? `Average ${metricName} is about the same (${fmt1(mA)} vs ${fmt1(mB)}).`
+    : `Average ${metricName} is <b>${fmt1(Math.abs(dlt))} points ${dlt > 0 ? "higher" : "lower"}</b> ${labelA.toLowerCase()}.`;
+  return `<div class="finding">${badge}<h3>${title}</h3><p style="margin:0">${sentence}</p>
+    <div class="cmp tnum">
+      <span>${labelA} (${nA})</span><span class="val">${fmt1(mA)}</span><div class="bar alt" style="grid-column:1/-1"><i style="width:${mA * 10}%"></i></div>
+      <span>${labelB} (${nB})</span><span class="val">${fmt1(mB)}</span><div class="bar" style="grid-column:1/-1"><i style="width:${mB * 10}%"></i></div>
+    </div></div>`;
+}
+
+function trendChart(keys) {
+  const W = 340, H = 154, L = 24, R = 8, T = 12, B = 22;
+  const x = i => L + i * (W - L - R) / Math.max(1, keys.length - 1);
+  const y = v => T + (10 - v) * (H - T - B) / 10;
+  const line = (metric) => {
+    let p = "", pen = false;
+    keys.forEach((k, i) => {
+      const v = days[k] && days[k].scores ? days[k].scores[metric] : null;
+      if (v == null) { pen = false; return; }
+      p += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+      pen = true;
+    });
+    return p;
+  };
+  const dots = (metric, col) => keys.map((k, i) => { const v = days[k] && days[k].scores ? days[k].scores[metric] : null; return v == null ? "" : `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.2" fill="${col}"/>`; }).join("");
+  let bands = "";
+  keys.forEach((k, i) => {
+    const w = (W - L - R) / Math.max(1, keys.length - 1);
+    if (isFlare(k)) bands += `<rect x="${(x(i) - w / 2).toFixed(1)}" y="${T}" width="${w.toFixed(1)}" height="${H - T - B}" fill="var(--danger)" fill-opacity=".12"/>`;
+    if (isPeriod(k)) bands += `<circle cx="${x(i).toFixed(1)}" cy="${T - 3}" r="2.6" fill="var(--rose)"/>`;
+    if (days[k] && days[k].travel) bands += `<path d="M${x(i).toFixed(1)} ${H - B + 3} l-3.5 6 h7z" fill="var(--chart-2)"/>`;
+  });
+  const grid = [0, 5, 10].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join("");
+  const xl = [0, Math.floor((keys.length - 1) / 2), keys.length - 1].map(i => { const d = parseKey(keys[i]); return `<text x="${x(i)}" y="${H - 4}" text-anchor="${i === 0 ? "start" : i === keys.length - 1 ? "end" : "middle"}">${d.getDate()} ${d.toLocaleDateString(undefined, { month: "short" })}</text>`; }).join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Pain and fatigue, last ${keys.length} days">${bands}${grid}
+    <path d="${line("fatigue")}" fill="none" stroke="var(--chart-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots("fatigue", "var(--chart-2)")}
+    <path d="${line("pain")}" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>${dots("pain", "var(--primary)")}${xl}</svg>`;
+}
+
+function weightChart(keys) {
+  const pts = keys.map((k, i) => [i, days[k] && days[k].weight != null ? toUnit(days[k].weight) : null]).filter(p => p[1] != null);
+  if (pts.length < 2) return "";
+  const W = 340, H = 130, L = 34, R = 10, T = 10, B = 22;
+  let lo = Math.min(...pts.map(p => p[1])), hi = Math.max(...pts.map(p => p[1]));
+  const pad = Math.max(0.5, (hi - lo) * 0.15); lo = Math.floor(lo - pad); hi = Math.ceil(hi + pad);
+  const x = i => L + i * (W - L - R) / Math.max(1, keys.length - 1);
+  const y = v => T + (hi - v) * (H - T - B) / (hi - lo);
+  const path = pts.map((p, j) => (j ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join("");
+  const area = path + `L${x(pts[pts.length - 1][0]).toFixed(1)} ${H - B}L${x(pts[0][0]).toFixed(1)} ${H - B}Z`;
+  const grid = [lo, (lo + hi) / 2, hi].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${fmt1(v)}</text>`).join("");
+  const lp = pts[pts.length - 1];
+  const xl = [0, keys.length - 1].map(i => { const d = parseKey(keys[i]); return `<text x="${x(i)}" y="${H - 4}" text-anchor="${i === 0 ? "start" : "end"}">${d.getDate()} ${d.toLocaleDateString(undefined, { month: "short" })}</text>`; }).join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight, last ${keys.length} days">${grid}
+    <path d="${area}" fill="var(--primary)" fill-opacity=".1"/><path d="${path}" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="${x(lp[0])}" cy="${y(lp[1])}" r="4" fill="var(--primary)" stroke="var(--surface)" stroke-width="2"/>${xl}</svg>`;
+}
+
+function vInsights() {
+  const t = todayKey();
+  const all = Object.keys(days).filter(k => k <= t).sort();
+  const scored = all.filter(k => days[k].scores && days[k].scores.pain != null);
+  const sc = (k, m) => days[k] && days[k].scores ? days[k].scores[m] : null;
+  const vals = (ks, m) => ks.map(k => sc(k, m)).filter(v => v != null);
+  const keys30 = [...Array(30)].map((_, i) => addDays(t, i - 29));
+
+  if (scored.length < 3) {
+    return `<div class="stack"><div><div class="label">Insights</div><h1>Patterns in your days</h1></div>
+      <section class="card empty"><h3>Insights appear after a few check-ins</h3>
+      <p style="margin:0">Log pain and fatigue on the Today tab for at least 3 days. Mark travel, gluten and flares as they happen. Steady then compares days to look for links, such as pain in the 3 days after travel.</p>
+      <p class="note">${scored.length} of 3 days logged so far.</p></section></div>`;
+  }
+
+  // windows
+  const within = (k, pred, lag) => { for (let i = 0; i <= lag; i++) if (pred(addDays(k, -i))) return true; return false; };
+  const trav = k => !!(days[k] && days[k].travel);
+  const glu = k => !!(days[k] && (days[k].gluten === "yes" || days[k].gluten === "maybe"));
+  const afterTravel = scored.filter(k => within(k, trav, 3));
+  const noTravel = scored.filter(k => !within(k, trav, 3));
+  const afterGluten = scored.filter(k => within(k, k2 => k2 !== k && glu(k2), 2));
+  const noGluten = scored.filter(k => !within(k, glu, 2));
+  const poorSleep = all.filter(k => sc(k, "sleep") != null && sc(k, "sleep") <= 4);
+  const goodSleep = all.filter(k => sc(k, "sleep") != null && sc(k, "sleep") >= 6);
+  const waterMet = all.filter(k => (days[k].water || 0) >= waterGlasses() && sc(k, "dizzy") != null);
+  const waterMiss = all.filter(k => (days[k].water || 0) < waterGlasses() && sc(k, "dizzy") != null);
+  const sh = settings.goals.strengthHabit;
+  const dayAfterStrength = all.filter(k => sc(k, "fatigue") != null && days[addDays(k, -1)] && days[addDays(k, -1)].done[sh]);
+  const dayAfterRest = all.filter(k => sc(k, "fatigue") != null && days[addDays(k, -1)] && !days[addDays(k, -1)].done[sh]);
+  const ex = k => (days[k] && days[k].extras) || [];
+  const afterExtra = scored.filter(k => ex(addDays(k, -1)).length), noExtra = scored.filter(k => !ex(addDays(k, -1)).length);
+  const saunaDay = k => ex(k).some(x => /sauna/i.test(x));
+  const dz = all.filter(k => sc(k, "dizzy") != null);
+  const sauna = dz.filter(saunaDay), noSauna = dz.filter(k => !saunaDay(k));
+  const nearPeriod = k => { for (let i = 0; i <= 3; i++) if (isPeriod(addDays(k, i))) return true; return false; };
+  const cycWin = scored.filter(nearPeriod), cycRest = scored.filter(k => !nearPeriod(k));
+  const flareNearPeriod = all.filter(k => isFlare(k) && nearPeriod(k)).length;
+  const highStress = all.filter(k => sc(k, "stress") != null && sc(k, "stress") >= 7);
+  const lowStress = all.filter(k => sc(k, "stress") != null && sc(k, "stress") <= 4);
+
+  // flare rate after travel
+  const travelDays = all.filter(trav);
+  let flareAfterTravel = 0;
+  travelDays.forEach(k => { for (let i = 0; i <= 3; i++) if (isFlare(addDays(k, i))) { flareAfterTravel++; break; } });
+
+  // flares
+  const flares = all.filter(isFlare);
+  const last90 = flares.filter(k => diffDays(k, t) < 90);
+  const episodes = []; let ep = null;
+  flares.forEach(k => { if (ep && diffDays(ep.end, k) === 1) ep.end = k; else { ep = { start: k, end: k }; episodes.push(ep); } });
+  const avgLen = episodes.length ? avg(episodes.map(e => diffDays(e.start, e.end) + 1)) : 0;
+  const tally = (field) => { const m = {}; flares.forEach(k => (days[k].flare[field] || []).forEach(x => m[x] = (m[x] || 0) + 1)); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6); };
+  const trig = tally("triggers"), sym = tally("symptoms");
+  const maxT = Math.max(1, ...trig.map(x => x[1])), maxS = Math.max(1, ...sym.map(x => x[1]));
+
+  const p30 = avg(vals(keys30.filter(k => k >= addDays(t, -13)), "pain")), pPrev = avg(vals(keys30.filter(k => k < addDays(t, -13)), "pain"));
+  const f14 = avg(vals(keys30.filter(k => k >= addDays(t, -13)), "fatigue"));
+
+  return `<div class="stack">
+    <div><div class="label">Insights</div><h1>Patterns in your days</h1></div>
+    <div class="stats">
+      <div class="stat"><b class="tnum">${p30 == null ? "–" : fmt1(p30)}</b><span>Avg pain, 14 days${p30 != null && pPrev != null ? ` (${p30 <= pPrev ? "↓" : "↑"} from ${fmt1(pPrev)})` : ""}</span></div>
+      <div class="stat"><b class="tnum">${f14 == null ? "–" : fmt1(f14)}</b><span>Avg fatigue, 14 days</span></div>
+      <div class="stat"><b class="tnum">${last90.length}</b><span>Flare days, 90 days</span></div>
+    </div>
+
+    <section class="card">
+      <div class="row between"><h2>Last 30 days</h2></div>
+      <div class="keyline" style="margin:8px 0"><span><i style="background:var(--primary)"></i>Pain</span><span><i style="background:var(--chart-2)"></i>Fatigue</span><span><i style="background:var(--danger);opacity:.35;height:8px"></i>Flare</span><span><i style="background:var(--chart-2);width:8px;height:8px;clip-path:polygon(50% 0,100% 100%,0 100%)"></i>Travel</span><span><i style="background:var(--rose);width:7px;height:7px;border-radius:50%"></i>Period</span></div>
+      ${trendChart(keys30)}
+    </section>
+
+    ${(() => {
+      const wk = [...Array(90)].map((_, i) => addDays(t, i - 89));
+      const ch = weightChart(wk); if (!ch) return "";
+      const ws = wk.filter(k => days[k] && days[k].weight != null);
+      const first = toUnit(days[ws[0]].weight), last = toUnit(days[ws[ws.length - 1]].weight), dlt = last - first;
+      return `<section class="card"><div class="row between"><h2>Weight, 90 days</h2><span class="note tnum">${fmt1(last)} ${settings.weightUnit} · ${dlt === 0 ? "steady" : (dlt > 0 ? "+" : "−") + fmt1(Math.abs(dlt))} since ${parseKey(ws[0]).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span></div><div style="margin-top:8px">${ch}</div></section>`;
+    })()}
+
+    <div class="section-head"><h2>Possible links</h2></div>
+    <section class="card">
+      ${cmpBlock("Travel and pain", "Travel day + 3 days after", vals(afterTravel, "pain"), "Other days", vals(noTravel, "pain"), "pain")}
+      ${travelDays.length ? `<div class="finding"><span class="badge ${flareAfterTravel ? "pattern" : "none"}">Flares after travel</span><p style="margin:0">${flareAfterTravel} of ${travelDays.length} travel day${travelDays.length === 1 ? "" : "s"} were followed by a flare within 3 days.</p></div>` : ""}
+      ${cmpBlock("Gluten and pain", "1–2 days after gluten", vals(afterGluten, "pain"), "No recent gluten", vals(noGluten, "pain"), "pain")}
+      ${cmpBlock("Sleep and pain", "After poor sleep (0–4)", vals(poorSleep, "pain"), "After good sleep (6–10)", vals(goodSleep, "pain"), "pain")}
+      ${cmpBlock("Hydration and dizziness", "Water target missed", vals(waterMiss, "dizzy"), "Water target met", vals(waterMet, "dizzy"), "dizziness")}
+      ${cmpBlock("Strength sessions and next-day fatigue", "Day after strength", vals(dayAfterStrength, "fatigue"), "Day after no session", vals(dayAfterRest, "fatigue"), "fatigue")}
+      ${cmpBlock("Extras and next-day pain", "Day after an extra", vals(afterExtra, "pain"), "Other days", vals(noExtra, "pain"), "pain")}
+      ${cmpBlock("Sauna heat and dizziness", "Sauna days", vals(sauna, "dizzy"), "Other days", vals(noSauna, "dizzy"), "dizziness")}
+      ${habits().some(h => h.id === "melatonin") ? (() => {
+        const after = (k, v) => vlist(days[addDays(k, -1)] && days[addDays(k, -1)].done.melatonin).includes(v);
+        const sl = all.filter(k => sc(k, "sleep") != null);
+        return cmpBlock("Melatonin dose and sleep", "After 2 tablets", vals(sl.filter(k => after(k, "2 tablets")), "sleep"), "After 1 tablet", vals(sl.filter(k => after(k, "1 tablet") && !after(k, "2 tablets")), "sleep"), "sleep quality", false);
+      })() : ""}
+      ${cmpBlock("Your cycle and pain", "Period + 3 days before", vals(cycWin, "pain"), "Rest of cycle", vals(cycRest, "pain"), "pain")}
+      ${cycleStarts().length && flares.length ? `<div class="finding"><span class="badge none">Flares and your cycle</span><p style="margin:0">${flareNearPeriod} of ${flares.length} flare day${flares.length === 1 ? "" : "s"} fell during a period or the 3 days before one.</p></div>` : ""}
+      ${cmpBlock("Stress and pain", "High-stress days (7+)", vals(highStress, "pain"), "Calmer days (0–4)", vals(lowStress, "pain"), "pain")}
+    </section>
+
+    <div class="section-head"><h2>Flares</h2><span class="note tnum">${episodes.length} episode${episodes.length === 1 ? "" : "s"}${episodes.length ? `, avg ${fmt1(avgLen)} days` : ""}</span></div>
+    <section class="card">
+      ${flares.length ? `<div class="stack" style="gap:16px">
+        <div><div class="label" style="margin-bottom:8px">Triggers you've noted</div><div class="tally">${trig.length ? trig.map(([n, c]) => `<div class="row"><span>${esc(n)}</span><div class="bar due"><i style="width:${c / maxT * 100}%"></i></div><b class="tnum">${c}</b></div>`).join("") : `<span class="note">No triggers tagged yet.</span>`}</div></div>
+        <div><div class="label" style="margin-bottom:8px">Most common symptoms</div><div class="tally">${sym.length ? sym.map(([n, c]) => `<div class="row"><span>${esc(n)}</span><div class="bar"><i style="width:${c / maxS * 100}%;background:var(--danger)"></i></div><b class="tnum">${c}</b></div>`).join("") : `<span class="note">No symptoms tagged yet.</span>`}</div></div>
+      </div>` : `<p class="muted" style="margin:0">No flares logged. When one happens, switch on Flare-up on the Today tab and tag symptoms and likely triggers.</p>`}
+    </section>
+    <p class="note">These comparisons show what tends to happen together in your own log. They can't prove cause, and small groups can mislead. They're a starting point for conversations with your care team.</p>
+  </div>`;
+}
+
+/* ---------- plan / settings ---------- */
+function schedEditor(h, i) {
+  const s = sched(h), id = esc(h.id), t = todayKey();
+  let body = "";
+  if (s.type === "weekly") {
+    body = `<div class="days chips">${[1, 2, 3, 4, 5, 6, 0].map(n => `<button class="chip" data-act="hday" data-id="${id}" data-n="${n}" aria-pressed="${!!(s.days && s.days.includes(n))}">${DOW[n].slice(0, 2)}</button>`).join("")}</div>`;
+  } else if (s.type === "interval") {
+    const nd = scheduled(h, t) ? 0 : nextDue(h, t);
+    body = `<div class="grid2">
+      <label class="field" for="se-${i}"><span>Every (days)</span><input type="number" id="se-${i}" min="1" data-sch="every" data-id="${id}" value="${s.every || 14}"></label>
+      <label class="field" for="ss-${i}"><span>First / last taken</span><input type="date" id="ss-${i}" data-sch="start" data-id="${id}" value="${s.start || t}"></label></div>
+      <p class="note" style="margin:0">${nd === 0 ? "Due today." : nd != null ? `Next due in ${nd} day${nd === 1 ? "" : "s"}.` : ""}</p>`;
+  } else if (s.type === "cycle") {
+    const ph = cyclePhase(h, t);
+    body = `<div class="grid2">
+      <label class="field" for="sa-${i}"><span>Restart when my period starts</span><select id="sa-${i}" data-sch="anchor" data-id="${id}"><option value="" ${s.anchor !== "period" ? "selected" : ""}>No</option><option value="period" ${s.anchor === "period" ? "selected" : ""}>Yes</option></select></label>
+      ${s.anchor === "period" ? `<label class="field" for="so-${i}"><span>Days after period starts</span><input type="number" id="so-${i}" min="0" data-sch="offset" data-id="${id}" value="${s.offset ?? 0}"></label>` : ""}
+      </div>
+      <label class="field" for="ss-${i}"><span>${s.anchor === "period" ? "Current cycle started on (until a period is logged)" : "Cycle started on"}</span><input type="date" id="ss-${i}" data-sch="start" data-id="${id}" value="${s.start || t}"></label>
+      ${(s.phases || []).map((p, pi) => `<div class="phase">
+        <label class="field" for="pd-${i}-${pi}"><span>Step ${pi + 1} dose</span><input type="text" id="pd-${i}-${pi}" data-ph="dose" data-pi="${pi}" data-id="${id}" value="${esc(p.dose)}" placeholder="Leave empty for a break"></label>
+        <label class="field" for="pl-${i}-${pi}"><span>Days</span><input type="number" id="pl-${i}-${pi}" min="1" data-ph="days" data-pi="${pi}" data-id="${id}" value="${p.days}"></label>
+        <button class="btn sm ghost" data-act="phdel" data-id="${id}" data-n="${pi}" ${(s.phases || []).length <= 1 ? "disabled" : ""} aria-label="Remove step ${pi + 1}">✕</button></div>`).join("")}
+      <div class="row"><button class="btn sm ghost" data-act="phadd" data-id="${id}">Add step</button>
+      <span class="note">${ph ? `Today: ${esc(ph.dose || "break")}, day ${ph.day} of ${ph.len}` : "Starts on the date above"}</span></div>`;
+  }
+  return `<label class="field" for="sty-${i}"><span>Repeats</span><select id="sty-${i}" data-sch="type" data-id="${id}">
+      ${[["daily", "Every day"], ["weekly", "On certain weekdays"], ["interval", "Every few days (e.g. fortnightly)"], ["cycle", "Dose cycle (e.g. 2 tablets 2 wks, 1 tablet 2 wks)"]].map(([v, l]) => `<option value="${v}" ${s.type === v ? "selected" : ""}>${l}</option>`).join("")}
+    </select></label>${body}`;
+}
+
+function supplyEditor(h, i) {
+  const s = h.stock || {}, si = stockInfo(h), id = esc(h.id);
+  const sum = !si ? "Fill in “On hand now” to get a reminder before you run out."
+    : !si.lastCovered ? `None left. ${si.runOut ? "Needed " + shortDate(si.runOut) + "." : ""}`
+    : si.runOut ? `${si.left} ${esc(si.unit)} left, enough until ${shortDate(si.lastCovered)}. Reminder from ${shortDate(si.reorderBy)}.`
+    : `${si.left} ${esc(si.unit)} left, enough for over a year.`;
+  return `<div class="field"><span>Supply (optional, for reorder reminders)</span>
+    <div class="grid2">
+      <label class="field" for="kc-${i}"><span>On hand now</span><input type="number" id="kc-${i}" min="0" step="any" inputmode="decimal" data-stk="count" data-id="${id}" value="${si ? si.left : ""}" placeholder="e.g. 4"></label>
+      <label class="field" for="ku-${i}"><span>Unit</span><input type="text" id="ku-${i}" data-stk="unit" data-id="${id}" value="${esc(s.unit || "")}" placeholder="doses, tablets, ml"></label>
+      <label class="field" for="kp-${i}"><span>Used per dose</span><input type="number" id="kp-${i}" min="0" step="any" data-stk="perDose" data-id="${id}" value="${s.perDose ?? 1}"></label>
+      <label class="field" for="kk-${i}"><span>Pack size</span><input type="number" id="kk-${i}" min="0" step="any" data-stk="pack" data-id="${id}" value="${s.pack ?? ""}"></label>
+      <label class="field" for="kl-${i}"><span>Remind me (days ahead)</span><input type="number" id="kl-${i}" min="0" data-stk="lead" data-id="${id}" value="${s.lead ?? 7}"></label>
+    </div>
+    <p class="note" style="margin:0">${sum}</p></div>`;
+}
+
+function vPlan() {
+  const list = habits().map((h, i) => {
+    const open = editOpen === h.id;
+    return `<details class="hedit" ${open ? "open" : ""} data-hid="${esc(h.id)}">
+      <summary data-act="openedit" data-id="${esc(h.id)}">${esc(h.name)}<span class="tag">${(TIMES.find(t => t[0] === h.time) || TIMES[0])[1]}</span></summary>
+      <div class="body">
+        <label class="field" for="hn-${i}"><span>Name</span><input type="text" id="hn-${i}" data-hfield="name" data-id="${esc(h.id)}" value="${esc(h.name)}"></label>
+        <label class="field" for="hd-${i}"><span>Detail (optional)</span><input type="text" id="hd-${i}" data-hfield="detail" data-id="${esc(h.id)}" value="${esc(h.detail)}"></label>
+        <div class="grid2">
+          <label class="field" for="hc-${i}"><span>Type</span><select id="hc-${i}" data-hfield="cat" data-id="${esc(h.id)}">${Object.entries(CATS).map(([v, l]) => `<option value="${v}" ${h.cat === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+          <label class="field" for="ht-${i}"><span>Time of day</span><select id="ht-${i}" data-hfield="time" data-id="${esc(h.id)}">${TIMES.map(([v, l]) => `<option value="${v}" ${h.time === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        </div>
+        ${schedEditor(h, i)}
+        <label class="field" for="hv-${i}"><span>Options to pick when ticking (optional, comma-separated)</span><input type="text" id="hv-${i}" data-hfield="variants" data-id="${esc(h.id)}" value="${esc((h.variants || []).join(", "))}" placeholder="e.g. Physio, Osteo"></label>
+        ${supplyEditor(h, i)}
+        <div class="row">
+          <button class="btn sm ghost" data-act="hmove" data-id="${esc(h.id)}" data-n="-1" ${i === 0 ? "disabled" : ""}>Move up</button>
+          <button class="btn sm ghost" data-act="hmove" data-id="${esc(h.id)}" data-n="1" ${i === habits().length - 1 ? "disabled" : ""}>Move down</button>
+          <button class="btn sm ghost" style="margin-left:auto;color:var(--danger)" data-act="hdel" data-id="${esc(h.id)}">Remove</button>
+        </div>
+        ${confirmDel === h.id ? `<div class="confirm">Remove "${esc(h.name)}"? Past ticks stay in your history.<button class="btn sm danger" data-act="hdelyes" data-id="${esc(h.id)}">Remove</button><button class="btn sm ghost" data-act="hdelno">Keep</button></div>` : ""}
+      </div></details>`;
+  }).join("");
+  const r = settings.retainer, w = settings.water, g = settings.goals;
+  return `<div class="stack">
+    <div><div class="label">My plan</div><h1>Your daily routine</h1></div>
+    <section class="card">
+      <div class="row between"><h2>Habits</h2><button class="btn sm" data-act="hadd">Add habit</button></div>
+      <div style="margin-top:6px">${list}</div>
+    </section>
+
+    <section class="card stack">
+      <div><h2>Extras</h2><p class="note" style="margin:4px 0 0">Optional things you log when you do them. They show up in Insights but never count against a streak.</p></div>
+      <div>${(settings.extras || []).map(x => `<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span style="font-weight:600">${esc(x)}</span><button class="btn sm ghost" data-act="exdel" data-v="${esc(x)}">Remove</button></div>`).join("")}</div>
+      <form class="row" style="flex-wrap:nowrap" onsubmit="event.preventDefault();document.querySelector('[data-act=exadd]').click()"><input type="text" id="ex-new" placeholder="e.g. Cold plunge" aria-label="New extra"><button class="btn sm" type="button" data-act="exadd">Add</button></form>
+    </section>
+
+    <section class="card stack">
+      <h2>Targets</h2>
+      <div class="grid2">
+        <label class="field" for="w-t"><span>Water per day (ml)</span><input type="number" id="w-t" min="500" step="100" data-sfield="water.targetMl" value="${w.targetMl}"></label>
+        <label class="field" for="w-g"><span>Glass size (ml)</span><input type="number" id="w-g" min="50" step="50" data-sfield="water.glassMl" value="${w.glassMl}"></label>
+        <label class="field" for="g-s"><span>Strength sessions / week</span><input type="number" id="g-s" min="1" max="7" data-sfield="goals.strengthPerWeek" value="${g.strengthPerWeek}"></label>
+        <label class="field" for="g-p"><span>Steady day threshold (%)</span><input type="number" id="g-p" min="50" max="100" step="5" data-sfield="goals.steadyPct" value="${g.steadyPct}"></label>
+      </div>
+      <label class="field" for="w-u"><span>Weight unit</span><select id="w-u" data-sfield="weightUnit"><option value="kg" ${settings.weightUnit !== "lb" ? "selected" : ""}>Kilograms (kg)</option><option value="lb" ${settings.weightUnit === "lb" ? "selected" : ""}>Pounds (lb)</option></select></label>
+      <label class="field" for="g-h"><span>Habit that counts as a strength session</span><select id="g-h" data-sfield="goals.strengthHabit">${habits().map(h => `<option value="${esc(h.id)}" ${g.strengthHabit === h.id ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select></label>
+    </section>
+
+    <section class="card stack">
+      <h2>Retainers</h2>
+      <div class="grid2">
+        <label class="field" for="r-s"><span>Current set number</span><input type="number" id="r-s" min="1" data-sfield="retainer.set" value="${r.set}"></label>
+        <label class="field" for="r-i"><span>Swap every (days)</span><input type="number" id="r-i" min="1" data-sfield="retainer.interval" value="${r.interval}"></label>
+      </div>
+      <label class="field" for="r-l"><span>Started current set on</span><input type="date" id="r-l" data-sfield="retainer.lastSwap" value="${r.lastSwap}"></label>
+    </section>
+
+    <section class="card stack">
+      <h2>Your data</h2>
+      <p style="margin:0" class="muted">${inClaude() ? "Entries are stored in your own private space. Anyone else who opens this page gets a separate, empty log and can't see yours." : "Entries are saved only in this browser on this device. Clearing site data deletes them, so export a backup now and then."} Export a copy to take to appointments.</p>
+      ${downloads || !inClaude() ? `<div class="row"><button class="btn sm" data-act="export-csv">Export CSV</button><button class="btn sm ghost" data-act="export-json">Export backup (JSON)</button></div>` : `<p class="note" style="margin:0">Exporting isn't available in this view.</p>`}
+    </section>
+    <p class="note">Steady is a personal log, not medical advice. Talk to your clinician before changing medication, supplements or exercise.</p>
+  </div>`;
+}
+
+/* ---------- events ---------- */
+function setPath(obj, path, val) { const p = path.split("."); let o = obj; for (let i = 0; i < p.length - 1; i++) o = o[p[i]] ||= {}; o[p[p.length - 1]] = val; }
+function toggleIn(arr, v) { const i = arr.indexOf(v); i >= 0 ? arr.splice(i, 1) : arr.push(v); return arr; }
+
+document.querySelector(".tabs").addEventListener("click", e => {
+  const b = e.target.closest(".tab"); if (!b) return;
+  view = b.dataset.tab; if (view === "today") curDay = curDay || todayKey();
+  render(); window.scrollTo(0, 0);
+});
+
+document.getElementById("app").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act, k = curDay;
+  if (act === "openedit") { e.preventDefault(); editOpen = editOpen === b.dataset.id ? null : b.dataset.id; confirmDel = null; render(); return; }
+  const d = ["tick", "tickv", "period", "csx", "extra", "water", "flare", "fsev", "fsym", "ftrig", "travel", "ttype", "gluten", "sublux"].includes(act) ? day(k) : null;
+  switch (act) {
+    case "tick": d.done[b.dataset.id] ? delete d.done[b.dataset.id] : d.done[b.dataset.id] = true; saveDay(k); render();
+      if (dayProgress(k).pct >= 1 && d.done[b.dataset.id]) toast("Everything done. Lovely work."); break;
+    case "tickv": { const vl = toggleIn([...vlist(d.done[b.dataset.id])], b.dataset.v); if (vl.length) d.done[b.dataset.id] = vl; else delete d.done[b.dataset.id]; saveDay(k); render(); }
+      if (dayProgress(k).pct >= 1 && d.done[b.dataset.id]) toast("Everything done. Lovely work."); break;
+    case "period": d.period = b.dataset.v || null; saveDay(k); render(); break;
+    case "csx": toggleIn(d.cycleSx ||= [], b.dataset.v); saveDay(k); render(); break;
+    case "restock": { const h = habits().find(x => x.id === b.dataset.id), si = stockInfo(h); if (!si) break;
+      h.stock = { ...h.stock, count: si.left + si.pack, asOf: stockAsOfNow(h) }; saveSettings(); render(); toast(`${h.name}: ${si.left + si.pack} ${si.unit} on hand`); break; }
+    case "editsupply": view = "plan"; editOpen = b.dataset.id; confirmDel = null; render();
+      setTimeout(() => { const el = document.querySelector(`[data-stk="count"][data-id="${b.dataset.id}"]`); if (el) el.scrollIntoView({ block: "center" }); }, 30); break;
+    case "extra": toggleIn(d.extras ||= [], b.dataset.v); saveDay(k); render(); break;
+    case "exdel": settings.extras = (settings.extras || []).filter(x => x !== b.dataset.v); saveSettings(); render(); break;
+    case "exadd": { const el = document.getElementById("ex-new"); const v = (el.value || "").trim(); if (!v) { el.focus(); break; }
+      if ((settings.extras ||= []).includes(v)) { toast(v + " is already on the list"); break; } settings.extras.push(v); saveSettings(); render(); toast("Added " + v); break; }
+    case "phadd": { const h = habits().find(x => x.id === b.dataset.id); const s = { ...sched(h) }; s.phases = [...(s.phases || []), { dose: "", days: 14 }]; h.sched = s; delete h.days; saveSettings(); render(); break; }
+    case "phdel": { const h = habits().find(x => x.id === b.dataset.id); const s = { ...sched(h) }; s.phases = (s.phases || []).filter((_, j) => j !== Number(b.dataset.n)); h.sched = s; saveSettings(); render(); break; }
+    case "water": d.water = Math.max(0, (d.water || 0) + Number(b.dataset.n)); saveDay(k); render();
+      if (d.water === waterGlasses() && b.dataset.n === "1") toast("Hydration target reached"); break;
+    case "sublux": d.sublux = Math.max(0, (d.sublux || 0) + Number(b.dataset.n)); saveDay(k); render(); break;
+    case "flare": d.flare = d.flare ? null : { severity: "Moderate", symptoms: [], triggers: d.travel ? ["Travel"] : [] }; saveDay(k); render(); break;
+    case "fsev": d.flare.severity = b.dataset.v; saveDay(k); render(); break;
+    case "fsym": toggleIn(d.flare.symptoms ||= [], b.dataset.v); saveDay(k); render(); break;
+    case "ftrig": toggleIn(d.flare.triggers ||= [], b.dataset.v); saveDay(k); render(); break;
+    case "travel": d.travel = d.travel ? null : { type: "Flight" }; saveDay(k); render(); break;
+    case "ttype": d.travel.type = b.dataset.v; saveDay(k); render(); break;
+    case "gluten": d.gluten = b.dataset.v; saveDay(k); render(); break;
+    case "day": { const n = Number(b.dataset.n); curDay = n === 0 ? todayKey() : addDays(curDay, n); if (curDay > todayKey()) curDay = todayKey(); render(); window.scrollTo(0, 0); break; }
+    case "goto": curDay = b.dataset.k; view = "today"; render(); window.scrollTo(0, 0); break;
+    case "swap": settings.retainer.set += 1; settings.retainer.lastSwap = todayKey(); saveSettings(); render(); toast("Now on set " + settings.retainer.set); break;
+    case "hday": { const h = habits().find(x => x.id === b.dataset.id); const n = Number(b.dataset.n); const s = sched(h); h.sched = { type: "weekly", days: toggleIn(s.days ? [...s.days] : [], n).sort() }; delete h.days; saveSettings(); render(); break; }
+    case "hmove": { const hs = habits(); const i = hs.findIndex(x => x.id === b.dataset.id); const j = i + Number(b.dataset.n); if (j < 0 || j >= hs.length) break; [hs[i], hs[j]] = [hs[j], hs[i]]; saveSettings(); render(); break; }
+    case "hdel": confirmDel = b.dataset.id; render(); break;
+    case "hdelno": confirmDel = null; render(); break;
+    case "hdelyes": settings.habits = habits().filter(x => x.id !== b.dataset.id); confirmDel = null; editOpen = null; saveSettings(); render(); toast("Habit removed"); break;
+    case "hadd": { const id = "h" + Date.now().toString(36); settings.habits.push({ id, name: "New habit", detail: "", cat: "care", time: "morning", days: null }); editOpen = id; saveSettings(); render();
+      setTimeout(() => { const el = document.querySelector(`[data-hfield="name"][data-id="${id}"]`); if (el) { el.focus(); el.select(); el.scrollIntoView({ block: "center" }); } }, 30); break; }
+    case "export-csv": exportCSV(); break;
+    case "export-json": exportJSON(); break;
+  }
+});
+
+document.getElementById("app").addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.score) {
+    const s = SCORES.find(x => x.k === el.dataset.score), v = Number(el.value);
+    day(curDay).scores[s.k] = v;
+    const wrap = el.closest(".score"); wrap.className = "score " + scoreClass(s, v);
+    document.getElementById("scv-" + s.k).textContent = v;
+    saveDay(curDay);
+  } else if (el.dataset.field) {
+    const d = day(curDay);
+    if (el.dataset.field === "notes") d.notes = el.value;
+    else if (el.dataset.field === "weight") { const v = parseFloat(el.value); d.weight = isFinite(v) && v > 0 ? Math.round(fromUnit(v) * 100) / 100 : null; }
+    else setPath(d, el.dataset.field, el.value === "" ? null : Number(el.value));
+    saveDay(curDay);
+  } else if (el.dataset.hfield && el.tagName === "INPUT" && el.dataset.hfield !== "variants") {
+    const h = habits().find(x => x.id === el.dataset.id); h[el.dataset.hfield] = el.value;
+    const sum = el.closest("details").querySelector("summary"); sum.firstChild.textContent = el.value || "Untitled";
+    saveSettings();
+  }
+});
+document.getElementById("app").addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.hfield === "variants") {
+    const h = habits().find(x => x.id === el.dataset.id);
+    const v = el.value.split(",").map(s => s.trim()).filter(Boolean);
+    if (v.length) h.variants = v; else delete h.variants;
+    saveSettings(); render(); return;
+  }
+  if (el.dataset.sch) {
+    const h = habits().find(x => x.id === el.dataset.id), s = { ...sched(h) }, f = el.dataset.sch;
+    if (f === "type") {
+      s.type = el.value;
+      if (s.type === "interval") { s.every ||= 14; s.start ||= todayKey(); }
+      if (s.type === "cycle") { s.start ||= todayKey(); if (!s.phases || !s.phases.length) s.phases = [{ dose: "2 tablets", days: 14 }, { dose: "1 tablet", days: 14 }]; }
+      if (s.type === "weekly") s.days ||= [];
+    } else if (f === "anchor") { if (el.value) { s.anchor = "period"; s.offset ??= 0; } else delete s.anchor; }
+    else if (f === "offset") { const n = Math.round(Number(el.value)); if (!(n >= 0)) { toast("Enter 0 or more days"); render(); return; } s.offset = n; }
+    else if (f === "every") { const n = Math.round(Number(el.value)); if (!(n >= 1)) { toast("Enter a number of days, 1 or more"); render(); return; } s.every = n; }
+    else if (f === "start") { if (!el.value) { render(); return; } s.start = el.value; }
+    h.sched = s; delete h.days; saveSettings(); render(); return;
+  }
+  if (el.dataset.stk) {
+    const h = habits().find(x => x.id === el.dataset.id), f = el.dataset.stk, s = { ...(h.stock || {}) };
+    if (f === "unit") s.unit = el.value.trim();
+    else if (el.value === "") { if (f === "count") { delete h.stock; saveSettings(); render(); return; } delete s[f]; }
+    else { const n = Number(el.value); if (!(n >= 0)) { toast("Enter 0 or more"); render(); return; } s[f] = n; if (f === "count") s.asOf = stockAsOfNow(h); }
+    h.stock = s; saveSettings(); render(); return;
+  }
+  if (el.dataset.ph) {
+    const h = habits().find(x => x.id === el.dataset.id), s = { ...sched(h) };
+    s.phases = (s.phases || []).map(p => ({ ...p }));
+    const p = s.phases[Number(el.dataset.pi)];
+    if (el.dataset.ph === "days") { const n = Math.round(Number(el.value)); if (!(n >= 1)) { toast("Enter a number of days, 1 or more"); render(); return; } p.days = n; }
+    else p.dose = el.value.trim();
+    h.sched = s; saveSettings(); render(); return;
+  }
+  if (el.dataset.field === "weight") { render(); return; }
+  if (el.dataset.hfield && el.tagName === "SELECT") { const h = habits().find(x => x.id === el.dataset.id); h[el.dataset.hfield] = el.value; saveSettings(); render(); }
+  else if (el.dataset.hfield === "name" && !el.value.trim()) { const h = habits().find(x => x.id === el.dataset.id); h.name = "Untitled"; saveSettings(); render(); }
+  else if (el.dataset.sfield) {
+    let v = el.value;
+    if (el.type === "number") { v = Number(v); if (!isFinite(v) || v <= 0) { toast("Enter a number above 0"); render(); return; } }
+    if (el.type === "date" && !v) { render(); return; }
+    setPath(settings, el.dataset.sfield, v); saveSettings(); render();
+  }
+});
+
+/* ---------- export ---------- */
+const inClaude = () => !!(window.claude && typeof window.claude.use === "function");
+async function saveFile(filename, data) {
+  if (!downloads && !inClaude()) {
+    // standalone browser (e.g. GitHub Pages): ordinary download link
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: filename.endsWith(".csv") ? "text/csv" : "application/json" }));
+    a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast("Saved " + filename); return;
+  }
+  if (!downloads) return;
+  try { await downloads.save({ filename, data }); toast("Saved " + filename); }
+  catch (e) { if (e && e.code !== "declined") toast("Couldn't save the file here"); }
+}
+function exportCSV() {
+  const hs = habits();
+  const head = ["date", "done_pct", ...SCORES.map(s => s.k), "water_glasses", "flare", "flare_severity", "flare_symptoms", "flare_triggers", "travel", "travel_hours", "time_zones", "gluten", "subluxations", "weight_" + (settings.weightUnit || "kg"), "period", "cycle_symptoms", "extras", ...hs.map(h => h.name), "notes"];
+  const q = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = Object.keys(days).sort().filter(k => meaningful(days[k])).map(k => {
+    const d = days[k];
+    return [k, Math.round(dayProgress(k).pct * 100), ...SCORES.map(s => d.scores[s.k]), d.water || 0, d.flare ? "yes" : "", d.flare?.severity, (d.flare?.symptoms || []).join("; "), (d.flare?.triggers || []).join("; "),
+      d.travel?.type, d.travel?.hours, d.travel?.tz, d.gluten || "none", d.sublux || 0, d.weight != null ? fmt1(toUnit(d.weight)) : "", d.period || "", (d.cycleSx || []).join("; "), (d.extras || []).join("; "),
+      ...hs.map(h => d.done[h.id] === true ? 1 : d.done[h.id] ? vlist(d.done[h.id]).join(" + ") : (scheduled(h, k) ? 0 : "")), d.notes].map(q).join(",");
+  });
+  saveFile("steady-log-" + todayKey() + ".csv", [head.map(q).join(","), ...rows].join("\n"));
+}
+function exportJSON() { saveFile("steady-backup-" + todayKey() + ".json", JSON.stringify({ exported: new Date().toISOString(), settings, days }, null, 2)); }
+
+/* ---------- boot ---------- */
+render();
+connect();
+// roll over to the new day if the app stays open past midnight
+let lastToday = todayKey();
+setInterval(() => { const t = todayKey(); if (t !== lastToday) { if (curDay === lastToday) curDay = t; lastToday = t; softRender(); } }, 60000);
+})();
+</script>
+
+</body>
+</html>
