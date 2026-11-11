@@ -112,6 +112,14 @@ main { padding-block: 18px 120px; }
 .vchips { margin-top: 8px; }
 .vchips .chip { padding: 5px 11px; font-size: .8rem; }
 .card.alert { background: var(--sun-soft); box-shadow: none; }
+.ostats { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 12px 10px; margin-top: 12px; }
+.ostats b { display: block; font-family: var(--font-display); font-size: 1.3rem; line-height: 1.1; }
+.ostats b small { font-family: var(--font-body); font-size: .7rem; color: var(--muted); font-weight: 600; }
+.ostats span { font-size: .75rem; color: var(--muted); font-weight: 600; }
+.otable { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.otable th, .otable td { padding: 7px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+.otable th:first-child, .otable td:first-child { text-align: left; }
+.otable th { font-size: .72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
 .upcoming { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
 .upcoming p { margin: 6px 0 0; font-size: .88rem; }
 .upcoming b { color: var(--sun); }
@@ -730,6 +738,8 @@ function vToday() {
       <div class="row" style="margin-top:12px"><button class="btn sm ${ri.due ? "" : "ghost"}" data-act="swap">Swapped to set ${settings.retainer.set + 1}</button></div>
     </section>
 
+    ${ouraTodayCard(d)}
+
     <div class="section-head"><h2>How you feel</h2><span class="note">Slide to log</span></div>
     <section class="card">${scores}</section>
 
@@ -1012,6 +1022,24 @@ function vInsights() {
       ${cmpBlock("Stress and pain", "High-stress days (7+)", vals(highStress, "pain"), "Calmer days (0–4)", vals(lowStress, "pain"), "pain")}
     </section>
 
+    ${(() => {
+      const od = all.filter(k => days[k].oura);
+      if (!od.length) return "";
+      const pre = new Set(), near = new Set();
+      episodes.forEach(e => { pre.add(addDays(e.start, -1)); pre.add(addDays(e.start, -2)); });
+      flares.forEach(k => { for (let i = -2; i <= 2; i++) near.add(addDays(k, i)); });
+      const M = [["hrv", "HRV", " ms"], ["rhr", "Resting HR", " bpm"], ["readiness", "Readiness", ""], ["tempDev", "Temperature", " °C"], ["sleepScore", "Sleep score", ""]];
+      const ov = (ks, m) => ks.map(k => days[k].oura[m]).filter(v => v != null);
+      const preDays = od.filter(k => pre.has(k)), calm = od.filter(k => !near.has(k));
+      const enough = episodes.filter(e => pre.has(addDays(e.start, -1)) && days[addDays(e.start, -1)] && days[addDays(e.start, -1)].oura).length >= 2;
+      return `<div class="section-head"><h2>Oura before flares</h2></div><section class="card">
+        ${enough ? `<div style="overflow-x:auto"><table class="otable tnum"><thead><tr><th></th><th>1–2 days before a flare</th><th>Calm days</th></tr></thead><tbody>
+          ${M.map(([m, l, u]) => { const a = avg(ov(preDays, m)), b = avg(ov(calm, m)); return `<tr><td>${l}</td><td>${a == null ? "–" : (m === "tempDev" ? a.toFixed(2) : fmt1(a)) + u}</td><td>${b == null ? "–" : (m === "tempDev" ? b.toFixed(2) : fmt1(b)) + u}</td></tr>`; }).join("")}
+        </tbody></table></div><p class="note" style="margin:10px 0 0">Lower HRV and readiness, or a higher resting heart rate and temperature, in the days before flares could be an early warning worth watching for.</p>`
+        : `<p class="muted" style="margin:0">Once Oura data covers at least 2 flares, this compares your ring's readings in the 2 days before a flare with calm days. It can show whether your body gives early warning signs.</p>`}
+      </section>`;
+    })()}
+
     <div class="section-head"><h2>Flares</h2><span class="note tnum">${episodes.length} episode${episodes.length === 1 ? "" : "s"}${episodes.length ? `, avg ${fmt1(avgLen)} days` : ""}</span></div>
     <section class="card">
       ${flares.length ? `<div class="stack" style="gap:16px">
@@ -1129,6 +1157,8 @@ function vPlan() {
       <label class="field" for="r-l"><span>Started current set on</span><input type="date" id="r-l" data-sfield="retainer.lastSwap" value="${r.lastSwap}"></label>
     </section>
 
+    ${ouraPlanCard()}
+
     <section class="card stack">
       <h2>Your data</h2>
       <p style="margin:0" class="muted">${inClaude() ? "Entries are stored in your own private space. Anyone else who opens this page gets a separate, empty log and can't see yours." : "Entries are saved only in this browser on this device. Clearing site data deletes them, so export a backup now and then."} Export a copy to take to appointments.</p>
@@ -1164,6 +1194,9 @@ document.getElementById("app").addEventListener("click", e => {
       h.stock = { ...h.stock, count: si.left + si.pack, asOf: stockAsOfNow(h) }; saveSettings(); render(); toast(`${h.name}: ${si.left + si.pack} ${si.unit} on hand`); break; }
     case "editsupply": view = "plan"; editOpen = b.dataset.id; confirmDel = null; render();
       setTimeout(() => { const el = document.querySelector(`[data-stk="count"][data-id="${b.dataset.id}"]`); if (el) el.scrollIntoView({ block: "center" }); }, 30); break;
+    case "ouraconnect": ouraConnect(); break;
+    case "ourasync": ouraSync(true); break;
+    case "ouraoff": ouraSave(null); ouraMsg = ""; render(); toast("Oura disconnected. Synced data stays in your log."); break;
     case "extra": toggleIn(d.extras ||= [], b.dataset.v); saveDay(k); render(); break;
     case "exdel": settings.extras = (settings.extras || []).filter(x => x !== b.dataset.v); saveSettings(); render(); break;
     case "exadd": { const el = document.getElementById("ex-new"); const v = (el.value || "").trim(); if (!v) { el.focus(); break; }
@@ -1262,6 +1295,110 @@ document.getElementById("app").addEventListener("change", e => {
   }
 });
 
+/* ---------- Oura (GitHub Pages version only, via the steady-oura helper) ---------- */
+const OURA_HELPER = ""; // set once the helper is deployed, e.g. https://steady-oura.<name>.workers.dev
+const OURA_LS = "steady.oura";
+let ouraBusy = false, ouraMsg = "";
+function ouraState() { try { return JSON.parse(localStorage.getItem(OURA_LS) || "null"); } catch { return null; } }
+function ouraSave(s) { try { s ? localStorage.setItem(OURA_LS, JSON.stringify(s)) : localStorage.removeItem(OURA_LS); } catch {} }
+const ouraReady = () => !inClaude() && !!OURA_HELPER;
+const redirectUri = () => location.origin + location.pathname;
+
+async function ouraConnect() {
+  try {
+    const cfg = await fetch(OURA_HELPER + "/config").then(r => r.json());
+    const st = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try { sessionStorage.setItem("steady.oura.state", st); } catch {}
+    location.href = "https://cloud.ouraring.com/oauth/authorize?" + new URLSearchParams({ response_type: "code", client_id: cfg.client_id, redirect_uri: redirectUri(), scope: "daily heartrate personal", state: st });
+  } catch (e) { toast("Couldn't reach the Oura helper. Check your connection."); }
+}
+async function ouraHandleRedirect() {
+  const p = new URLSearchParams(location.search);
+  if (!p.has("code") && !p.has("error")) return false;
+  history.replaceState(null, "", location.pathname);
+  if (p.get("error")) { toast("Oura connection cancelled"); return false; }
+  let expected = null; try { expected = sessionStorage.getItem("steady.oura.state"); } catch {}
+  if (!expected || expected !== p.get("state")) { toast("Oura connection didn't complete. Try Connect again."); return false; }
+  try {
+    const r = await fetch(OURA_HELPER + "/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: p.get("code"), redirect_uri: redirectUri() }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.access_token) { toast("Oura connection failed: " + (j.error_description || j.error || r.status)); return false; }
+    ouraSave({ access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 86400) * 1000, last: null });
+    toast("Oura connected");
+    return true;
+  } catch { toast("Couldn't reach the Oura helper. Try again."); return false; }
+}
+async function ouraRefresh(s) {
+  const r = await fetch(OURA_HELPER + "/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: s.refresh }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error("expired");
+  Object.assign(s, { access: j.access_token, refresh: j.refresh_token || s.refresh, exp: Date.now() + (j.expires_in || 86400) * 1000 });
+  ouraSave(s);
+}
+async function ouraGet(s, path, start, end) {
+  if (Date.now() > s.exp - 60000) await ouraRefresh(s);
+  const base = OURA_HELPER + "/v2/usercollection/" + path + "?" + new URLSearchParams({ start_date: start, end_date: end });
+  const get = u => fetch(u, { headers: { Authorization: "Bearer " + s.access } });
+  let r = await get(base);
+  if (r.status === 401) { await ouraRefresh(s); r = await get(base); }
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  let j = await r.json(); const out = [...(j.data || [])];
+  for (let n = 0; j.next_token && n < 20; n++) { const r2 = await get(base + "&next_token=" + encodeURIComponent(j.next_token)); if (!r2.ok) break; j = await r2.json(); out.push(...(j.data || [])); }
+  return out;
+}
+async function ouraSync(manual) {
+  const s = ouraState(); if (!ouraReady() || !s || ouraBusy) return;
+  if (!manual && s.lastAt && Date.now() - s.lastAt < 30 * 60000) return;
+  ouraBusy = true; ouraMsg = "Syncing…"; if (view === "plan") render();
+  const t = todayKey();
+  try {
+    const start = s.last ? addDays(s.last, -3) : addDays(t, -60), end = addDays(t, 1);
+    const [ds, dr, sl, da] = await Promise.all(["daily_sleep", "daily_readiness", "sleep", "daily_activity"].map(p => ouraGet(s, p, start, end)));
+    const m = {}, g = k => (m[k] ||= {});
+    ds.forEach(x => { if (x.score != null) g(x.day).sleepScore = x.score; });
+    dr.forEach(x => { const o = g(x.day); if (x.score != null) o.readiness = x.score; if (x.temperature_deviation != null) o.tempDev = Math.round(x.temperature_deviation * 100) / 100; });
+    const main = {}; sl.forEach(x => { if (!main[x.day] || (x.total_sleep_duration || 0) > (main[x.day].total_sleep_duration || 0)) main[x.day] = x; });
+    Object.values(main).forEach(x => { const o = g(x.day); if (x.average_hrv != null) o.hrv = Math.round(x.average_hrv); if (x.lowest_heart_rate != null) o.rhr = x.lowest_heart_rate; if (x.total_sleep_duration) o.sleepHrs = Math.round(x.total_sleep_duration / 360) / 10; });
+    da.forEach(x => { if (x.steps != null) g(x.day).steps = x.steps; });
+    let n = 0;
+    Object.entries(m).forEach(([k, o]) => {
+      if (k > t) return;
+      const d = day(k), before = JSON.stringify(d.oura || {});
+      d.oura = { ...(d.oura || {}), ...o };
+      if (o.sleepScore != null && d.scores.sleep == null) d.scores.sleep = Math.round(o.sleepScore / 10);
+      if (JSON.stringify(d.oura) !== before) { n++; saveDay(k); }
+    });
+    s.last = t; s.lastAt = Date.now(); ouraSave(s);
+    ouraMsg = `Last synced ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}${n ? `, ${n} day${n === 1 ? "" : "s"} updated` : ""}`;
+    if (manual) toast("Oura synced");
+  } catch (e) {
+    console.warn(e);
+    if (e.message === "expired") { ouraSave(null); ouraMsg = "Oura sign-in expired. Connect again below."; }
+    else ouraMsg = "Couldn't reach Oura. Try Sync now later.";
+  }
+  ouraBusy = false; softRender();
+}
+function ouraTodayCard(d) {
+  const o = d.oura; if (!o) return "";
+  const items = [["Sleep", o.sleepScore, ""], ["Readiness", o.readiness, ""], ["HRV", o.hrv, " ms"], ["Resting HR", o.rhr, " bpm"],
+    ["Temp", o.tempDev != null ? (o.tempDev > 0 ? "+" : o.tempDev < 0 ? "−" : "") + Math.abs(o.tempDev).toFixed(1) : null, " °C"], ["Asleep", o.sleepHrs, " h"], ["Steps", o.steps != null ? o.steps.toLocaleString() : null, ""]].filter(x => x[1] != null);
+  return `<section class="card"><div class="row between"><h2>Oura</h2><span class="note">From your ring</span></div>
+    <div class="ostats">${items.map(([l, v, u]) => `<div><b class="tnum">${v}<small>${u}</small></b><span>${l}</span></div>`).join("")}</div></section>`;
+}
+function ouraPlanCard() {
+  if (inClaude()) return `<section class="card stack"><h2>Oura Ring</h2><p class="muted" style="margin:0">Oura sync works in the GitHub version of Steady, which you use on your phone.</p></section>`;
+  const s = ouraState();
+  return `<section class="card stack"><h2>Oura Ring</h2>
+    ${!OURA_HELPER ? `<p class="muted" style="margin:0">Oura connection is being set up. Check back soon.</p>`
+    : s ? `<p style="margin:0">Connected. Sleep, readiness, HRV, resting heart rate, temperature and steps sync each time you open Steady.</p>
+        <p class="note" style="margin:0">${esc(ouraMsg || (s.lastAt ? "Last synced " + new Date(s.lastAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Not synced yet"))}</p>
+        <div class="row"><button class="btn sm" data-act="ourasync" ${ouraBusy ? "disabled" : ""}>${ouraBusy ? "Syncing…" : "Sync now"}</button><button class="btn sm ghost" data-act="ouraoff">Disconnect</button></div>`
+    : `<p style="margin:0">Bring in sleep, readiness, HRV, resting heart rate, temperature and steps automatically. Your sleep score also fills in "Sleep quality" if you haven't logged it.</p>
+        ${ouraMsg ? `<p class="note" style="margin:0">${esc(ouraMsg)}</p>` : ""}
+        <div class="row"><button class="btn sm" data-act="ouraconnect">Connect Oura</button></div>`}
+  </section>`;
+}
+
 /* ---------- export ---------- */
 const inClaude = () => !!(window.claude && typeof window.claude.use === "function");
 async function saveFile(filename, data) {
@@ -1278,12 +1415,13 @@ async function saveFile(filename, data) {
 }
 function exportCSV() {
   const hs = habits();
-  const head = ["date", "done_pct", ...SCORES.map(s => s.k), "water_glasses", "flare", "flare_severity", "flare_symptoms", "flare_triggers", "travel", "travel_hours", "time_zones", "gluten", "subluxations", "weight_" + (settings.weightUnit || "kg"), "period", "cycle_symptoms", "extras", ...hs.map(h => h.name), "notes"];
+  const head = ["date", "done_pct", ...SCORES.map(s => s.k), "water_glasses", "flare", "flare_severity", "flare_symptoms", "flare_triggers", "travel", "travel_hours", "time_zones", "gluten", "subluxations", "weight_" + (settings.weightUnit || "kg"), "period", "cycle_symptoms", "extras", "oura_sleep", "oura_readiness", "oura_hrv_ms", "oura_resting_hr", "oura_temp_dev", "oura_sleep_hours", "oura_steps", ...hs.map(h => h.name), "notes"];
   const q = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const rows = Object.keys(days).sort().filter(k => meaningful(days[k])).map(k => {
     const d = days[k];
     return [k, Math.round(dayProgress(k).pct * 100), ...SCORES.map(s => d.scores[s.k]), d.water || 0, d.flare ? "yes" : "", d.flare?.severity, (d.flare?.symptoms || []).join("; "), (d.flare?.triggers || []).join("; "),
       d.travel?.type, d.travel?.hours, d.travel?.tz, d.gluten || "none", d.sublux || 0, d.weight != null ? fmt1(toUnit(d.weight)) : "", d.period || "", (d.cycleSx || []).join("; "), (d.extras || []).join("; "),
+      ...["sleepScore", "readiness", "hrv", "rhr", "tempDev", "sleepHrs", "steps"].map(f => d.oura ? d.oura[f] : ""),
       ...hs.map(h => d.done[h.id] === true ? 1 : d.done[h.id] ? vlist(d.done[h.id]).join(" + ") : (scheduled(h, k) ? 0 : "")), d.notes].map(q).join(",");
   });
   saveFile("steady-log-" + todayKey() + ".csv", [head.map(q).join(","), ...rows].join("\n"));
@@ -1293,6 +1431,10 @@ function exportJSON() { saveFile("steady-backup-" + todayKey() + ".json", JSON.s
 /* ---------- boot ---------- */
 render();
 connect();
+if (ouraReady()) {
+  ouraHandleRedirect().then(ok => ouraSync(ok));
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") ouraSync(false); });
+}
 // roll over to the new day if the app stays open past midnight
 let lastToday = todayKey();
 setInterval(() => { const t = todayKey(); if (t !== lastToday) { if (curDay === lastToday) curDay = t; lastToday = t; softRender(); } }, 60000);

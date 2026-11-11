@@ -1,0 +1,8 @@
+name = "steady-oura"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+# OURA_CLIENT_ID is public (it appears in the sign-in link anyway).
+# OURA_CLIENT_SECRET is set separately with: npx wrangler secret put OURA_CLIENT_SECRET
+[vars]
+OURA_CLIENT_ID = ""
